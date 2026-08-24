@@ -73,11 +73,18 @@ const Tag = href ? "a" : "div";
     transform: translateY(3px);
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
+  /* The photograph bleeds to the card's own edges rather than sitting inside
+     the padding, which reads as a thumbnail someone dropped in. The top corners
+     follow the card's radius; 1px in, so the border still draws cleanly. */
   .pb-teaser__img {
-    width: 100%;
+    width: calc(100% + 2 * var(--pb-card-pad));
+    /* The global `img { max-width: 100% }` clamps that calc back to the
+       content box, so the photograph bled left and stopped short on the right. */
+    max-width: none;
+    margin: calc(-1 * var(--pb-card-pad)) calc(-1 * var(--pb-card-pad)) 0.5rem;
     aspect-ratio: 16 / 10;
     object-fit: cover;
-    border-radius: var(--pb-radius-control);
+    border-radius: calc(var(--pb-radius-card) - 1px) calc(var(--pb-radius-card) - 1px) 0 0;
   }
   .pb-teaser__text {
     color: inherit;

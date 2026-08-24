@@ -119,6 +119,7 @@ const TYPES = {
   AccordionBlock: ["heading", "items"],
   AccordionItemBlock: ["heading", "body"],
   TextBlock: ["body"],
+  ImageBlock: ["image", "caption"],
   QuoteBlock: ["quote", "source"],
   BannerBlock: ["heading", "text", "link"],
   PersonBlock: ["firstName", "lastName", "workTitle", "email"],
@@ -242,11 +243,143 @@ async function alreadySeeded() {
   return JSON.stringify(tree.json).includes("Nordlys Studio");
 }
 
+/* ------------------------------- photographs ------------------------------- */
+
+/**
+ * Stock photographs, fetched from Unsplash at seed time and uploaded into the
+ * CMS as real assets — because an `image` field holds an asset documentId, not a
+ * URL, and a demo that links to someone else's CDN would not be exercising the
+ * media pipeline at all.
+ *
+ * Fetched rather than committed: these are not ours to redistribute in a git
+ * repository, and this way each instance pulls its own copy. Unsplash's licence
+ * allows free use without permission; attribution is appreciated rather than
+ * required, and the photo ids below are the record of what was used.
+ *
+ * Every one has real alt text, written from looking at the picture. A demo that
+ * ships `alt=""` on twelve photographs teaches the wrong lesson twice: it fails
+ * the visitor who cannot see them, and it models the habit for whoever copies
+ * this file.
+ *
+ * If the network is unavailable the upload is skipped and the demo is built
+ * without pictures — every template already handles a missing image, which is
+ * worth seeing anyway.
+ */
+const PHOTOS = {
+  hero: {
+    id: "1552664730-d307ca884978",
+    crop: "w=1600&h=1200",
+    alt: "A woman adding sticky notes to a whiteboard while four colleagues watch from a meeting table",
+  },
+  officeEmpty: {
+    id: "1497366754035-f200968a6e72",
+    crop: "w=1600&h=900",
+    alt: "An empty open-plan office with glass partitions and a long shared desk",
+  },
+  handshake: {
+    id: "1600880292203-757bb62b4baf",
+    crop: "w=1600&h=1000",
+    alt: "Two colleagues celebrating over an open laptop in a bright meeting room",
+  },
+  sketching: {
+    id: "1454165804606-c3d57bc86b40",
+    crop: "w=1200&h=900",
+    alt: "Hands sketching a diagram in a notebook beside two open laptops",
+  },
+  code: {
+    id: "1531482615713-2afd69097998",
+    crop: "w=1200&h=900",
+    alt: "Two developers looking at code on a large monitor in an office",
+  },
+  teamLaptops: {
+    id: "1522071820081-009f0129c71c",
+    crop: "w=1200&h=900",
+    alt: "Four people working at laptops around a table, seen from behind",
+  },
+  tableNotes: {
+    id: "1517048676732-d65bc937f952",
+    crop: "w=1200&h=800",
+    alt: "Several pairs of hands writing on documents spread across a wooden table",
+  },
+  deskOverhead: {
+    id: "1519389950473-47ba0277781c",
+    crop: "w=1200&h=800",
+    alt: "A shared desk photographed from above, covered with laptops, notebooks and coffee cups",
+  },
+  twoTalking: {
+    id: "1573496359142-b8d87734a5a2",
+    crop: "w=1200&h=800",
+    alt: "Two people in conversation beside an orange wall",
+  },
+  conference: {
+    id: "1542744173-8e7e53415bb0",
+    crop: "w=1200&h=800",
+    alt: "A full conference room, people at laptops around a long table",
+  },
+  ingrid: {
+    id: "1494790108377-be9c29b29330",
+    crop: "w=800&h=1000",
+    alt: "Portrait of a smiling woman in a red top",
+  },
+  jonas: {
+    id: "1472099645785-5658abf4ff4e",
+    crop: "w=800&h=1000",
+    alt: "Portrait of a smiling man wearing glasses against a plain background",
+  },
+};
+
+/**
+ * Upload one photograph and return its asset documentId.
+ *
+ * Two calls, because the API separates them: the multipart POST stores the file
+ * (server-generated name, sniffed type, 5MB cap) and the PUT sets the alt text.
+ */
+async function uploadPhoto(key, photo) {
+  const url = `https://images.unsplash.com/photo-${photo.id}?${photo.crop}&fit=crop&q=75&fm=jpg`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch ${key}: ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+
+  const body = new FormData();
+  body.append("file", new Blob([bytes], { type: "image/jpeg" }), `${key}.jpg`);
+
+  // No content-type header here on purpose: FormData sets it with the boundary,
+  // and overriding it makes the multipart body unparseable.
+  const upload = await fetch(`${API}/api/v1/manage/assets`, {
+    method: "POST",
+    headers: { origin: API, cookie, "x-csrf-token": csrf },
+    body,
+  });
+  if (!upload.ok) throw new Error(`upload ${key}: ${upload.status} ${(await upload.text()).slice(0, 120)}`);
+  const asset = await upload.json();
+
+  const alt = await call("PUT", `/manage/assets/${asset.documentId}`, { alt: photo.alt });
+  if (!alt.ok) log(`alt text for ${key}: ${alt.status}`);
+  return asset.documentId;
+}
+
+/** key -> asset documentId, or {} when the photographs could not be fetched. */
+async function uploadPhotos() {
+  const ids = {};
+  for (const [key, photo] of Object.entries(PHOTOS)) {
+    try {
+      ids[key] = await uploadPhoto(key, photo);
+    } catch (error) {
+      log(`no photograph for "${key}" (${error?.message ?? error})`);
+    }
+  }
+  const count = Object.keys(ids).length;
+  log(count ? `${count} photographs uploaded` : "no photographs — building the demo without pictures");
+  return ids;
+}
+
 // ------------------------------------------------------------------ content ---
 
 const SERVICES = [
   {
     name: "Design systems",
+    photo: "sketching",
+    caption: "Component naming, settled on paper before anyone opens an editor.",
     teaser: "One set of components, documented, that survives the next redesign.",
     intro: "We build the component library, write down the rules, and leave your team able to extend it.",
     body: [
@@ -260,6 +393,8 @@ const SERVICES = [
   },
   {
     name: "Web development",
+    photo: "code",
+    caption: "Pairing on the front end, with the performance budget on screen.",
     teaser: "Fast sites that editors can change without opening a ticket.",
     intro: "Front ends that load quickly, meet WCAG, and hand real control to the people who write the words.",
     body: [
@@ -273,6 +408,8 @@ const SERVICES = [
   },
   {
     name: "Content operations",
+    photo: "teamLaptops",
+    caption: "A modelling workshop with the people who publish every day.",
     teaser: "Getting an editorial team from three-week deploys to publishing themselves.",
     intro: "Modelling, migration, and the training that makes both stick.",
     body: [
@@ -288,6 +425,7 @@ const ARTICLES = [
     intro: "Frameworks get replaced every few years. The shape of your content does not.",
     author: "Ingrid Solberg",
     date: "2026-01-15T09:00:00.000Z",
+    photo: "tableNotes",
     body: [
       "Every rebuild starts with an argument about frameworks and ends with the same realisation: the hard part was never the rendering. It was that nobody could say what a page actually is.",
       "Model the things your organisation genuinely talks about — a course, a product, a person — and give each the fields it really has. Resist the page type that exists because one campaign needed a third column.",
@@ -298,6 +436,7 @@ const ARTICLES = [
     intro: "Every custom editing interface is a product you then have to maintain.",
     author: "Ingrid Solberg",
     date: "2026-02-03T09:00:00.000Z",
+    photo: "deskOverhead",
     body: [
       "We used to build editing interfaces for clients. They were lovely for a year and then became the thing nobody wanted to touch, because whoever wrote them had moved on.",
       "A CMS that lets editors compose pages from blocks removes most of the reason to build one at all.",
@@ -308,6 +447,7 @@ const ARTICLES = [
     intro: "You can ship a perfect component library and still fail an audit on link text.",
     author: "Jonas Berg",
     date: "2026-03-11T09:00:00.000Z",
+    photo: "twoTalking",
     body: [
       "Most accessibility findings we see on editorial sites are not code. They are twelve links that all say read more, headings chosen for their size, and images with a filename as the alt text.",
       "The fix is partly training and partly making the right thing the easy thing: a link field that asks for its text, an image field that will not save without a description.",
@@ -318,6 +458,7 @@ const ARTICLES = [
     intro: "What we learned moving a twenty-year archive one content type at a time.",
     author: "Jonas Berg",
     date: "2026-04-22T09:00:00.000Z",
+    photo: "conference",
     body: [
       "The instinct is a big-bang migration over a weekend. The alternative is duller and much safer: migrate one type at a time, run both systems behind the same URLs, and move traffic as each type finishes.",
       "It took eleven weeks instead of one weekend, and nothing was ever down.",
@@ -357,6 +498,7 @@ async function main() {
   await ensureTypes();
   await removeStockSeedPages();
   await setSiteName("Nordlys Studio");
+  const photo = await uploadPhotos();
 
   // --- a SHARED block, referenced by several pages --------------------------
   // One document, placed in three content areas: edit it once and every page
@@ -366,6 +508,9 @@ async function main() {
     heading: "Thinking about a rebuild?",
     text: "We run a paid discovery week: you get a content model, a plan and an estimate you can take anywhere.",
     link: { href: "/contact", text: "Book a discovery week" },
+    // With a background image the panel goes dark and gains a scrim, so the
+    // text keeps its contrast whatever the photograph looks like.
+    backgroundImage: photo.officeEmpty,
   });
 
   // --- services: a parent page with three children --------------------------
@@ -388,17 +533,20 @@ async function main() {
           body: rt(...s.body),
           teaserTitle: s.name,
           teaserText: s.teaser,
+          teaserImage: photo[s.photo],
           // Every service page carries blocks — an article or service page with
           // an empty content area reads as a plain document, which is the
           // impression a demo exists to dispel. The last one also carries the
           // SHARED banner, so one document appears on three pages.
-          mainArea:
-            i === SERVICES.length - 1
+          // The same photograph the teaser card uses, reused as a figure on the
+          // page itself — one asset, two placements, which is how a media
+          // library is actually used.
+          mainArea: [
+            b("ImageBlock", { image: photo[s.photo], caption: s.caption }),
+            ...(i === SERVICES.length - 1
               ? [ref("BannerBlock", cta)]
-              : [
-                  b("QuoteBlock", { quote: s.quote, source: s.quoteSource }),
-                  b("TextBlock", { body: rt(s.extra) }),
-                ],
+              : [b("QuoteBlock", { quote: s.quote, source: s.quoteSource }), b("TextBlock", { body: rt(s.extra) })]),
+          ],
         },
         services,
       ),
@@ -449,6 +597,10 @@ async function main() {
           body: rt(...a.body),
           teaserTitle: a.name,
           teaserText: a.intro,
+          // The last two articles have no photograph on purpose: the template
+          // has to look right without one, and not every post has a picture.
+          mainImage: a.photo ? photo[a.photo] : undefined,
+          teaserImage: a.photo ? photo[a.photo] : undefined,
         },
         journal,
       ),
@@ -458,6 +610,7 @@ async function main() {
 
   // --- a person -------------------------------------------------------------
   const person = await page("PersonPage", "Ingrid Solberg", {
+    image: photo.ingrid,
     firstName: "Ingrid",
     lastName: "Solberg",
     workTitle: "Principal consultant",
@@ -473,6 +626,7 @@ async function main() {
   // The journal bylines two people, so both need a page — otherwise the second
   // name reads as a missing feature rather than a text field.
   const person2 = await page("PersonPage", "Jonas Berg", {
+    image: photo.jonas,
     firstName: "Jonas",
     lastName: "Berg",
     workTitle: "Lead developer",
@@ -496,6 +650,8 @@ async function main() {
       body: rt(...ARTICLES[0].body),
       teaserTitle: ARTICLES[0].name,
       teaserText: ARTICLES[0].intro,
+      mainImage: photo[ARTICLES[0].photo],
+      teaserImage: photo[ARTICLES[0].photo],
       mainArea: [ref("BannerBlock", cta)],
     });
   }
@@ -508,6 +664,8 @@ async function main() {
       body: rt(...ARTICLES[2].body),
       teaserTitle: ARTICLES[2].name,
       teaserText: ARTICLES[2].intro,
+      mainImage: photo[ARTICLES[2].photo],
+      teaserImage: photo[ARTICLES[2].photo],
       mainArea: [
         b("QuoteBlock", {
           quote: "Twelve links called read more, and every one of them passed our old checklist.",
@@ -577,10 +735,15 @@ async function main() {
     teaserText: "Who we are, and an honest note about what this site actually is.",
     mainArea: [
       b("PersonBlock", {
+        image: photo.ingrid,
         firstName: "Ingrid",
         lastName: "Solberg",
         workTitle: "Principal consultant",
         email: "ingrid@nordlys.example",
+      }),
+      b("ImageBlock", {
+        image: photo.handshake,
+        caption: "The moment a client realises they can publish it themselves.",
       }),
       b("LinkListBlock", {
         heading: "Elsewhere on this site",
@@ -649,6 +812,7 @@ async function main() {
         heading: "Sites your editors can actually run",
         subtitle:
           "We build content-led websites for teams who want to publish without booking a developer. Design systems, front-end work, and the training that makes it stick.",
+        image: photo.hero,
         primaryLink: pageLink(contact, "Book a discovery week"),
         secondaryLink: pageLink(services, "See what we do"),
       }),
@@ -706,6 +870,9 @@ async function main() {
     ],
     footerText: rt(
       "Nordlys Studio is fictional. Every page here is demo content for the Paperboy CMS — edit any of it in the admin and reload.",
+      // The Unsplash licence does not require attribution; it asks for it, and a
+      // demo that models the habit costs one line.
+      "Photographs from Unsplash.",
     ),
   });
 
