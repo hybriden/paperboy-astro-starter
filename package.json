@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.4",
-    "@paperboycms/client": "^0.3.0",
+    "@paperboycms/client": "^0.4.0",
     "@paperboycms/preview": "^0.3.2",
     "astro": "^7.2.5"
   },

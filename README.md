@@ -55,9 +55,12 @@ preview pane opens the right field. On the public site there are no markers and
 no bridge — verified: 30 markers in preview, 0 in public.
 
 **Preview is a signed, short-lived token.** The admin asks its own API for a
-token and passes it as `?pbt=`; this app verifies the HMAC. The secret never
-reaches a browser. Tampered and expired tokens are rejected, and preview
-responses are always `noindex`.
+token and passes it as `?pbt=`; `isPreview()` verifies it with
+`@paperboycms/client/preview-token` — a separate subpath from the client, because
+its first argument is your `PREVIEW_SECRET` and nothing browser-bound may hold
+that. The secret never reaches a browser, tampered and expired tokens are
+rejected, and preview responses are always `noindex`. Don't reimplement that
+check: comparing a MAC by hand is how drafts end up on public sites.
 
 **Forms are content.** A Form block is delivered as a *schema* (fields, labels,
 validation, error copy) — never markup — so `PaperboyForm.astro` styles it however
@@ -81,7 +84,6 @@ sitemap automatically.
 src/
   lib/
     cms.ts             the only place this app talks to Paperboy
-    preview-token.ts   HMAC verification for ?pbt= (WebCrypto, runs anywhere)
   components/
     Blocks.astro       schema-driven content-area renderer
     PaperboyForm.astro a form built from the delivered spec

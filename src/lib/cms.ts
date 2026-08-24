@@ -1,5 +1,5 @@
 import { createClient, type PaperboyClient } from "@paperboycms/client";
-import { constantTimeEqual, verifyPreviewToken } from "./preview-token";
+import { constantTimeEqual, verifyPreviewToken } from "@paperboycms/client/preview-token";
 
 /**
  * The one place this app talks to Paperboy.
@@ -68,7 +68,13 @@ export function cms(env: Env, preview = false): PaperboyClient {
  *                 the preview iframe sends; the browser never holds the secret.
  *   ?pb=<secret>  the raw secret, for server-side or CLI callers that hold it.
  *
- * Async because token verification is WebCrypto (see preview-token.ts).
+ * The verification comes from `@paperboycms/client/preview-token` — a SEPARATE
+ * subpath from the client itself, because its first argument is your
+ * PREVIEW_SECRET and nothing that reaches a browser bundle may hold that. Do not
+ * reimplement it: comparing a MAC by hand is how drafts end up on public sites.
+ *
+ * Async because that verification is WebCrypto, which is what lets this same file
+ * run on Node, Cloudflare Workers, Deno and Bun.
  */
 export async function isPreview(url: URL, env?: Env): Promise<boolean> {
   const { previewSecret } = config(env);
