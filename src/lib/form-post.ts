@@ -39,9 +39,44 @@ export function elapsedMs(form: Pick<FormData, "get">): number | undefined {
  * anything that is not a plain same-origin path falls back to "/". An open
  * redirect is not something a form endpoint should offer.
  */
-export function backTo(form: Pick<FormData, "get">, ok: boolean): string {
-  const raw = String(form.get("pb_return_to") ?? "/");
-  const safe = /^\/(?!\/)[^\\]*$/.test(raw) ? raw.split("?")[0].split("#")[0] : "/";
+export function backTo(
+  form: Pick<FormData, "get">,
+  ok: boolean,
+  referer?: string | null,
+  origin?: string,
+): string {
   const token = String(form.get("pb_form_id") ?? "").slice(0, 8);
-  return `${safe}?${ok ? "sent" : "formError"}=${encodeURIComponent(token)}#pb-form`;
+  const suffix = `?${ok ? "sent" : "formError"}=${encodeURIComponent(token)}#pb-form`;
+
+  // The REFERER is preferred over the posted field. Both are attacker-influenced
+  // and both are checked the same way, but the referer is what the browser
+  // actually came from — and a review found the posted echo landing visitors on
+  // "/" (a page with no form, so a no-JS submission ended in silence) while the
+  // unit test on the field alone stayed green.
+  for (const candidate of [refererPath(referer, origin), String(form.get("pb_return_to") ?? "")]) {
+    if (safePath(candidate)) return candidate.split("?")[0].split("#")[0] + suffix;
+  }
+  return "/" + suffix;
+}
+
+/** Same-origin path only: never a scheme, a host, or a protocol-relative "//". */
+function safePath(value: string): boolean {
+  return /^\/(?!\/)[^\\]*$/.test(value);
+}
+
+/**
+ * The path part of a Referer — but only when it came from THIS site.
+ *
+ * A cross-origin referer cannot cause an off-site redirect (only the path is
+ * used), but it should not get to choose which of our pages the visitor lands
+ * on either. When `origin` is not supplied, no referer is trusted.
+ */
+function refererPath(referer?: string | null, origin?: string): string {
+  if (!referer || !origin) return "";
+  try {
+    const url = new URL(referer);
+    return url.origin === origin ? url.pathname : "";
+  } catch {
+    return "";
+  }
 }

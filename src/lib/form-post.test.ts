@@ -29,6 +29,31 @@ describe("elapsedMs", () => {
 });
 
 describe("backTo", () => {
+  it("prefers the referer, because that is where the browser actually came from", () => {
+    // A review found the posted field landing no-JS visitors on "/" — a page with
+    // no form, so the submission succeeded and the visitor was told nothing —
+    // while the unit test on the field alone stayed green.
+    expect(
+      backTo(form({ pb_form_id: "f", pb_return_to: "/" }), true, "http://localhost:4321/contact", "http://localhost:4321"),
+    ).toBe("/contact?sent=f#pb-form");
+  });
+
+  it("falls back to the posted field when there is no referer", () => {
+    expect(backTo(form({ pb_form_id: "f", pb_return_to: "/contact" }), true, null, "http://localhost:4321")).toBe(
+      "/contact?sent=f#pb-form",
+    );
+  });
+
+  it("refuses a referer from another origin", () => {
+    // Same guard as the posted field: a path only, never a host.
+    // Only the path is ever used, so this was never an open redirect — but a
+    // cross-origin referer should not choose which of OUR pages you land on.
+    expect(
+      backTo(form({ pb_form_id: "f", pb_return_to: "/contact" }), true, "https://evil.example/x", "http://localhost:4321"),
+    ).toBe("/contact?sent=f#pb-form");
+    expect(backTo(form({ pb_form_id: "f" }), true, "not a url", "http://localhost:4321")).toBe("/?sent=f#pb-form");
+  });
+
   it("returns to the page that submitted, with the outcome and the form's token", () => {
     expect(backTo(form({ pb_return_to: "/contact", pb_form_id: "abcdefghijkl" }), true)).toBe(
       "/contact?sent=abcdefgh#pb-form",

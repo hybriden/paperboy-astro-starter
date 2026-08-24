@@ -131,7 +131,7 @@ const TYPES = {
   Form: ["title", "intro", "fields", "submitLabel"],
   FormTextField: ["name", "label", "required", "placeholder", "errorMessage"],
   FormEmailField: ["name", "label", "required", "placeholder"],
-  FormTextareaField: ["name", "label", "required", "rows", "errorMessage"],
+  FormTextareaField: ["name", "label", "required", "rows", "minLength", "errorMessage"],
   FormConsentField: ["name", "label", "errorMessage"],
 };
 
@@ -617,7 +617,11 @@ async function main() {
         label: "What are you trying to do?",
         required: true,
         rows: 5,
-        errorMessage: "A sentence or two is plenty — we will ask the rest.",
+        // A minimum the BROWSER cannot enforce on its own here, so a newcomer
+        // actually sees CMS-declared validation happen in the editor's words
+        // rather than a native bubble.
+        minLength: 20,
+        errorMessage: "A sentence or two is plenty — a couple of words is not.",
       }),
       b("FormConsentField", {
         name: "consent",

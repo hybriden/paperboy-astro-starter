@@ -25,7 +25,7 @@
  *    silently discarded as spam while being told it was sent.
  *  - `pb_return_to` says where to come back to, rather than trusting Referer.
  */
-import { fieldAttrs, honeypotAttrs, type FormSpec } from "@paperboycms/client";
+import { fieldAttrs, honeypotAttrs, isRichTextDoc, renderRichText, type FormSpec } from "@paperboycms/client";
 
 interface Props {
   spec: FormSpec;
@@ -41,10 +41,17 @@ const token = String(formId).slice(0, 8);
 const sent = Astro.url.searchParams.get("sent") === token;
 const failed = Astro.url.searchParams.get("formError") === token;
 const renderedAt = Date.now();
+const introHtml = isRichTextDoc(spec.intro) ? renderRichText(spec.intro) : "";
 const returnTo = Astro.url.pathname;
 ---
 
-<form class="pb-form" method="POST" action="/api/submit" data-paperboy-form>
+{/* novalidate on purpose. The CMS is the authority on these rules, and the
+    browser's own bubbles fire BEFORE any script runs — so with native validation
+    on, a visitor saw "Please tick this box if you want to proceed" and never the
+    editor's own wording, which is the thing this form exists to demonstrate.
+    Every field still carries required/type for assistive tech and for the
+    server; only the browser's own UI is suppressed. */}
+<form class="pb-form" method="POST" action="/api/submit" data-paperboy-form novalidate>
   <input type="hidden" name="pb_form_id" value={formId} />
   <input type="hidden" name="pb_honeypot_field" value={spec.honeypotField} />
   <input type="hidden" name="pb_elapsed_ms" value="0" data-paperboy-elapsed />
@@ -52,6 +59,9 @@ const returnTo = Astro.url.pathname;
   <input type="hidden" name="pb_return_to" value={returnTo} />
 
   {spec.title && <h2>{spec.title}</h2>}
+  {/* The editor's own introduction. Delivered as richtext on the spec and, until
+      now, quietly discarded — the exact failure this codebase has rules about. */}
+  {introHtml && <div class="pb-form__intro pb-prose" set:html={introHtml} />}
 
   {/* One live region for the whole form, so a screen reader hears the outcome
       instead of hunting for it. The no-JS round trip lands here too. */}
@@ -112,7 +122,7 @@ const returnTo = Astro.url.pathname;
   })}
 
   {/* Invisible to people, irresistible to bots. */}
-  <div style={honeypot.wrapperStyle}>
+  <div style={honeypot.wrapperStyle} aria-hidden="true" inert>
     <label for={`pb-${formId}-hp`}>Leave this field empty</label>
     <input {...honeypot.input} id={`pb-${formId}-hp`} />
   </div>
@@ -138,11 +148,20 @@ const returnTo = Astro.url.pathname;
         status.classList.toggle("pb-form__status--ok", ok);
         status.classList.toggle("pb-form__status--bad", !ok);
       };
-      const clearErrors = () =>
+      const clearErrors = () => {
         form.querySelectorAll<HTMLElement>("[data-paperboy-error]").forEach((el) => {
           el.textContent = "";
           el.hidden = true;
         });
+        // Also the status: a second, rejected attempt used to sit under the
+        // "Thank you" from the first one, telling the visitor their message was
+        // in when it had just been refused.
+        if (status) {
+          status.textContent = "";
+          status.hidden = true;
+          status.classList.remove("pb-form__status--ok", "pb-form__status--bad");
+        }
+      };
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -168,7 +187,7 @@ const returnTo = Astro.url.pathname;
 
           if (res.ok) {
             form.reset();
-            say(typeof body.message === "string" ? body.message : "Thank you - your message is with us.", true);
+            say(typeof body.message === "string" ? body.message : "Thank you \u2014 your message is with us.", true);
             return;
           }
 
@@ -261,6 +280,10 @@ const returnTo = Astro.url.pathname;
   .pb-form__help {
     margin: 0;
     font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+
+  .pb-form__intro {
     color: var(--pb-muted);
   }
 

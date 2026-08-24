@@ -75,17 +75,29 @@ const breadcrumbLd =
  */
 let header: Delivered | null = null;
 let footer: Delivered | null = null;
+let settings: Delivered | null = null;
 try {
   const client = cms(env, preview);
-  [header, footer] = await Promise.all([
+  [header, footer, settings] = await Promise.all([
     client.global("HeaderSettings").catch(() => null),
     client.global("FooterSettings").catch(() => null),
+    client.global("SiteSettings").catch(() => null),
   ]);
 } catch {
   // No CMS configured yet, or unreachable. A page with no nav still beats a 500
   // — and it means `npm run dev` works before you have filled in .env.
 }
-const siteName = og?.siteName ?? "Home";
+/**
+ * The masthead name.
+ *
+ * `og.siteName` only exists on pages that HAVE an SEO block, so the 404 fell
+ * through to the literal "Home" and rendered a differently-branded page — which
+ * is what a visitor sees at the exact moment they mistyped a URL. The site
+ * settings global is the same source delivery uses for og:site_name, and the
+ * layout is already fetching it.
+ */
+const settingsName = typeof settings?.data?.siteName === "string" ? settings.data.siteName : "";
+const siteName = og?.siteName ?? settingsName ?? "";
 ---
 
 <!doctype html>
