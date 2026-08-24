@@ -362,7 +362,7 @@ a {
    minus to close. Decorative either way — the <details> element carries the
    real state for assistive tech. */
 .pb-accordion__toggle::before { content: "+"; }
-.pb-accordion__item[open] .pb-accordion__toggle::before { content: "2"; }
+.pb-accordion__item[open] .pb-accordion__toggle::before { content: "−"; }
 
 .pb-accordion__body {
   margin-top: 1.5rem;

@@ -1,5 +1,6 @@
 import type { APIContext } from "astro";
 import { config } from "../../lib/cms";
+import { backTo, elapsedMs } from "../../lib/form-post";
 
 /**
  * Form submissions.
@@ -21,10 +22,22 @@ import { config } from "../../lib/cms";
 export const prerender = false;
 
 /** Handled by this route or the CMS itself — not visitor answers. */
-const CONTROL_FIELDS = new Set(["pb_form_id", "pb_honeypot_field", "pb_elapsed_ms"]);
+const CONTROL_FIELDS = new Set([
+  "pb_form_id",
+  "pb_honeypot_field",
+  "pb_elapsed_ms",
+  "pb_rendered_at",
+  "pb_return_to",
+]);
+
+/** A fetch() caller asks for JSON; a plain form post does not. */
+const wantsJson = (request: Request) => (request.headers.get("accept") ?? "").includes("application/json");
 
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+/** 303, so the browser follows it with a GET and a refresh cannot re-submit. */
+const redirect = (location: string) => new Response(null, { status: 303, headers: { location } });
 
 export async function POST(context: APIContext): Promise<Response> {
   const env = (context.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
@@ -33,7 +46,10 @@ export async function POST(context: APIContext): Promise<Response> {
 
   const form = await context.request.formData();
   const formId = String(form.get("pb_form_id") ?? "");
-  if (!formId) return json({ error: "Missing form id." }, 400);
+  if (!formId) {
+    if (!wantsJson(context.request)) return redirect(backTo(form, false));
+    return json({ error: "Missing form id." }, 400);
+  }
 
   // The honeypot's field name comes from the CMS, so read whichever hidden field
   // the rendered form carried rather than assuming one here.
@@ -45,7 +61,6 @@ export async function POST(context: APIContext): Promise<Response> {
     if (typeof value === "string") values[key] = value;
   }
 
-  const elapsed = Number(form.get("pb_elapsed_ms"));
   const res = await fetch(`${apiUrl}/api/v1/delivery/forms/${encodeURIComponent(formId)}/submissions`, {
     method: "POST",
     headers: {
@@ -56,7 +71,7 @@ export async function POST(context: APIContext): Promise<Response> {
     },
     body: JSON.stringify({
       values,
-      elapsedMs: Number.isFinite(elapsed) ? elapsed : undefined,
+      elapsedMs: elapsedMs(form),
       honeypot: honeypotName ? String(form.get(honeypotName) ?? "") : "",
     }),
   });
@@ -66,6 +81,7 @@ export async function POST(context: APIContext): Promise<Response> {
     // input (WCAG 3.3.1) rather than showing only the first.
     const body = (await res.json()) as { fields?: Record<string, string> };
     const first = Object.values(body.fields ?? {})[0];
+    if (!wantsJson(context.request)) return redirect(backTo(form, false));
     return json({ error: first ?? "Please check the form and try again.", fields: body.fields ?? {} }, 400);
   }
 
@@ -77,8 +93,10 @@ export async function POST(context: APIContext): Promise<Response> {
     // you add a notification below, skip it on this branch or the spam lands in
     // the inbox those checks exist to protect.
     const discarded = body.submissionId === "sub_discarded";
+    if (!wantsJson(context.request)) return redirect(backTo(form, true));
     return json({ ok: true, discarded }, 200);
   }
 
+  if (!wantsJson(context.request)) return redirect(backTo(form, false));
   return json({ error: "Could not send the message. Please try again." }, 502);
 }

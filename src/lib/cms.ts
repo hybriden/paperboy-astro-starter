@@ -138,3 +138,50 @@ export async function fetchPublicFile(
     return null;
   }
 }
+
+/** One published page, as the delivery inventory reports it. */
+export interface PageInventoryEntry {
+  documentId: string;
+  type: string;
+  name: string;
+  locale: string;
+  urlPath: string;
+  lastmod?: string;
+  noIndex?: boolean;
+}
+
+/**
+ * Every published page, for building robots/sitemap/llms.txt OURSELVES.
+ *
+ * Why not just proxy the CMS's generated files: they compose absolute URLs as
+ * `{canonicalBaseUrl}/{locale}{urlPath}`, which is the reference frontend's
+ * scheme. This app serves pages WITHOUT a locale segment, so every proxied URL
+ * was an alias — a sitemap full of URLs that are not the canonical ones, which
+ * is worse than no sitemap. CLAUDE.md sanctions exactly this: other frontends
+ * build from /delivery/pages.
+ */
+export async function fetchPageInventory(env: Env): Promise<PageInventoryEntry[]> {
+  const c = config(env);
+  if (!c.apiUrl || !c.publicKey) return [];
+  try {
+    const res = await fetch(`${c.apiUrl}/api/v1/delivery/pages`, {
+      headers: { authorization: `Bearer ${c.publicKey}` },
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { pages?: PageInventoryEntry[] };
+    return Array.isArray(body.pages) ? body.pages : [];
+  } catch {
+    // A CMS hiccup must never break crawling — callers fall back.
+    return [];
+  }
+}
+
+/** The start page's documentId, so it can be emitted as "/" rather than its slug. */
+export async function fetchStartPageId(env: Env): Promise<string | null> {
+  try {
+    const start = await cms(env).startPage({ populate: 0 });
+    return start?.documentId ?? null;
+  } catch {
+    return null;
+  }
+}

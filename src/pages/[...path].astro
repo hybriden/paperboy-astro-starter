@@ -24,6 +24,7 @@ import PersonPage from "../templates/PersonPage.astro";
 import SectionPage from "../templates/SectionPage.astro";
 import StartPage from "../templates/StartPage.astro";
 import type { Delivered } from "@paperboycms/client";
+import { splitLocalePath } from "../lib/routing";
 import { str } from "../lib/values";
 
 export const prerender = false;
@@ -52,15 +53,38 @@ if (!cfg.apiUrl || !cfg.publicKey) {
 const preview = await isPreview(Astro.url, env);
 const client = cms(env, preview);
 
-const path = `/${(Astro.params.path ?? "").replace(/^\/+|\/+$/g, "")}`;
-// A urlPath belongs to a LOCALE: /hjem exists in Norwegian and nowhere else, so
-// asking for it in the wrong language is a 404. PAPERBOY_LOCALE picks which
-// language this deployment serves; unset means the API's default.
-const locale = cfg.locale || undefined;
-const page =
+/**
+ * Resolve the request to a page, in the right language.
+ *
+ * A urlPath belongs to a LOCALE — /home in English is /hjem in Norwegian — and
+ * two things send locale-prefixed URLs here:
+ *
+ *   - The ADMIN's preview pane, which frames `{previewUrl}/{locale}{urlPath}`.
+ *     Without this, side-by-side editing framed /en and got a 404 page.
+ *   - A multilingual site, where /nb/... is how you address the Norwegian tree.
+ *
+ * So a first segment that LOOKS like a locale is tried as one; if nothing is
+ * there, it is treated as part of the path after all (a page whose slug happens
+ * to be two letters still works — it just costs one extra lookup). No prefix
+ * means PAPERBOY_LOCALE, and unset means whatever the API defaults to.
+ */
+const resolve = async (path: string, locale: string | undefined) =>
   path === "/"
     ? await client.startPage({ populate: 2, locale })
     : await client.getByPath(path, { populate: 2, locale });
+
+const split = splitLocalePath(Astro.params.path);
+let page = split.locale ? await resolve(split.rest, split.locale) : null;
+
+// The API falls back to the default locale for a locale it knows but this page
+// has no translation in, so /nb/services happily served the English page — a
+// second live URL for the same content, with a canonical pointing elsewhere.
+// Take the prefix at its word: if what came back is not in that language, it is
+// not that page.
+if (page && split.locale && (page.locale ?? "").toLowerCase() !== split.locale.toLowerCase()) page = null;
+
+let path = page ? split.rest : split.full;
+if (!page) page = await resolve(split.full, cfg.locale || undefined);
 
 if (!page) return Astro.rewrite("/404");
 
@@ -91,7 +115,12 @@ const pageParam = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10)
 const pageNumber = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 ---
 
-<Layout seo={page.seo} preview={preview} env={env}>
+<Layout
+  seo={page.seo}
+  preview={preview}
+  env={env}
+  canonicalPath={split.full === "/" ? "/" : undefined}
+>
   <Template
     data={data}
     types={page.fieldTypes}

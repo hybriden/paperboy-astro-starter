@@ -33,14 +33,20 @@ interface Props {
   title?: string;
   /** Runtime env, passed through so the globals fetch works on any host. */
   env?: Env;
+  /**
+   * Force the canonical path. The START PAGE answers on both "/" and its own
+   * slug, and delivery reports the slug — so without this the front page would
+   * declare a canonical URL that is not the one anybody links to.
+   */
+  canonicalPath?: string;
 }
-const { seo, preview = false, title, env } = Astro.props;
+const { seo, preview = false, title, env, canonicalPath } = Astro.props;
 
 // Prefer the configured `site` in astro.config.mjs (stable behind proxies and
 // CDNs); fall back to the request origin so the starter works with no config.
 const origin = Astro.site?.origin ?? Astro.url.origin;
 const abs = (path: string) => new URL(path, origin).href;
-const canonical = seo?.canonicalPath ? abs(seo.canonicalPath) : null;
+const canonical = canonicalPath ? abs(canonicalPath) : seo?.canonicalPath ? abs(seo.canonicalPath) : null;
 
 const og = seo?.og;
 const jsonLd = seo?.jsonLd ? JSON.stringify(seo.jsonLd) : null;
@@ -127,6 +133,24 @@ const siteName = og?.siteName ?? "Home";
   </head>
   <body>
     <SiteHeader settings={header} preview={preview} siteName={siteName} />
+    {crumbs.length > 1 && (
+      /* The trail delivery already computes. Without it, a deep page is a dead
+         end: its only way out is the main menu, which does not say where you
+         are. The JSON-LD above is built from this same array. */
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="pb-container">
+          <ol>
+            {crumbs.map((c, i) =>
+              i === crumbs.length - 1 ? (
+                <li aria-current="page">{c.name}</li>
+              ) : (
+                <li><a href={c.urlPath}>{c.name}</a></li>
+              ),
+            )}
+          </ol>
+        </div>
+      </nav>
+    )}
     <main id="main">
       <slot />
     </main>
@@ -134,3 +158,25 @@ const siteName = og?.siteName ?? "Home";
     {preview && <PreviewBridge />}
   </body>
 </html>
+
+<style>
+  .breadcrumbs {
+    padding-top: 1.25rem;
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+  .breadcrumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .breadcrumbs li + li::before {
+    content: "/";
+    margin-right: 0.5rem;
+    opacity: 0.5;
+  }
+  .breadcrumbs a { color: inherit; }
+</style>

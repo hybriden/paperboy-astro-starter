@@ -1,0 +1,165 @@
+# Everything, from one clone:
+#
+#   docker compose -f docker-compose.demo.yml up -d --build
+#
+#   http://localhost:4321   this site
+#   http://localhost:8090   the CMS admin — admin@paperboy.test / Admin!Passw0rd
+#   http://localhost:8091   the API (OpenAPI UI at /docs)
+#
+# No .env, no keys to copy, no second repo to clone: the CMS comes from published
+# images (ghcr.io/hybriden/paperboy-*) and seeds itself with demo content. Edit a
+# page in the admin and watch it change here — the site's preview URL is already
+# pointed at :4321, so side-by-side editing works out of the box.
+#
+# ⚠️ THIS IS A DEMO STACK. Every credential below is a public constant committed
+# to a public repo, `ALLOW_DEMO_CREDENTIALS` deliberately opts back into the
+# published demo login, and cookies are non-Secure so http://localhost works. Do
+# not put it on a network you do not control. For a real deployment, run the CMS
+# from the Paperboy repo (which generates real secrets) and point this app at it
+# with `npm run setup`.
+#
+# Stop and wipe it: docker compose -f docker-compose.demo.yml down -v
+
+name: paperboy-demo
+
+x-cms-image: &cms-image ghcr.io/hybriden/paperboy-app:latest
+
+# Demo-only, and deliberately NOT the shipped "please-override" placeholders:
+# the API refuses to boot on those, which is the correct behaviour and not
+# something to work around with a real secret in a public file.
+x-demo-secrets: &demo-secrets
+  SESSION_SECRET: demo-stack-session-secret-not-for-production
+  CSRF_SECRET: demo-stack-csrf-secret-not-for-production
+  MFA_SECRET: demo-stack-mfa-secret-not-for-production
+  PREVIEW_SECRET: demo-stack-preview-secret-not-for-production
+
+x-delivery-keys: &delivery-keys
+  PAPERBOY_PUBLIC_KEY: pk_live_seed_public_key_value
+  PAPERBOY_PREVIEW_KEY: prv_seed_preview_key_value
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paperboy
+      POSTGRES_PASSWORD: paperboy
+      POSTGRES_DB: paperboy
+    # No published port on purpose: this must not collide with a Postgres you
+    # already run (the CMS repo's own stack publishes 5433).
+    volumes:
+      - demo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperboy -d paperboy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: migrate + seed demo content, then exit. Skips a database that
+  # already holds content, so restarting the stack never wipes your edits.
+  init:
+    image: *cms-image
+    command: ["pnpm", "--filter", "@paperboy/db", "seed"]
+    environment:
+      <<: [*demo-secrets, *delivery-keys]
+      DATABASE_URL: postgresql://paperboy:paperboy@db:5432/paperboy
+      SEED_ADMIN_EMAIL: admin@paperboy.test
+      SEED_ADMIN_PASSWORD: Admin!Passw0rd
+      # The published demo login. Refused by default under NODE_ENV=production —
+      # this flag exists for exactly this case, a throwaway local demo.
+      ALLOW_DEMO_CREDENTIALS: "true"
+      # What the admin's preview pane frames: this site.
+      SITE_PREVIEW_URL: http://localhost:4321
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    # Must be named `api`: the admin image's nginx proxies /api/ to http://api:8091.
+    image: *cms-image
+    command: ["pnpm", "--filter", "@paperboy/api", "start"]
+    restart: unless-stopped
+    environment:
+      <<: *demo-secrets
+      NODE_ENV: production
+      DATABASE_URL: postgresql://paperboy:paperboy@db:5432/paperboy
+      API_PORT: "8091"
+      CORS_ORIGIN: http://localhost:8090
+      # http://localhost cannot carry a Secure cookie, so the admin login would
+      # be dropped. Both of these are why this stack is localhost-only.
+      COOKIE_SECURE: "false"
+      ALLOW_INSECURE_COOKIES: "true"
+      # Absolute media URLs pointing at the API, because this site serves its own
+      # origin and does not proxy /uploads — relative URLs would 404 here.
+      MEDIA_PUBLIC_BASE: http://localhost:8091
+      UPLOADS_DIR: /app/uploads
+      TRUST_PROXY: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "8091:8091"
+    volumes:
+      - demo-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8091/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Fills the fresh CMS with a demo SITE — start page of blocks, articles, an
+  # FAQ, a profile, and a MENU to browse it with. Talks to the Management API the
+  # way a person would, and does nothing if the content is already there, so
+  # restarting the stack never overwrites your edits.
+  demo-content:
+    image: node:24-alpine
+    command: ["node", "/scripts/demo-content.mjs"]
+    working_dir: /scripts
+    volumes:
+      - ./scripts:/scripts:ro
+    environment:
+      PAPERBOY_API_URL: http://api:8091
+      PAPERBOY_ADMIN_EMAIL: admin@paperboy.test
+      PAPERBOY_ADMIN_PASSWORD: Admin!Passw0rd
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+  admin:
+    image: ghcr.io/hybriden/paperboy-admin:latest
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8090:8090"
+
+  site:
+    # This app, built from the Dockerfile in this repo.
+    build: .
+    image: paperboy-astro-starter:latest
+    restart: unless-stopped
+    environment:
+      <<: *delivery-keys
+      # Container-to-container, so a service name — not localhost, which inside a
+      # container means the container itself.
+      PAPERBOY_API_URL: http://api:8091
+      PREVIEW_SECRET: demo-stack-preview-secret-not-for-production
+      HOST: 0.0.0.0
+      PORT: "4321"
+    depends_on:
+      api:
+        condition: service_healthy
+      # So the first page you load already has content on it.
+      demo-content:
+        condition: service_completed_successfully
+    ports:
+      - "4321:4321"
+
+volumes:
+  demo-pgdata:
+  demo-uploads:

@@ -13,6 +13,17 @@
  * The submit goes to this app's own /api/submit, which forwards to the CMS. That
  * server hop exists so the CMS validates against the CURRENT published form
  * definition: the rules the visitor was shown are the rules actually enforced.
+ *
+ * Works WITHOUT JavaScript, on purpose. With JS it submits in the background and
+ * puts each error beside its field; without, it is a plain POST that redirects
+ * back here with a message instead of showing raw JSON. Two details make the
+ * no-JS path honest:
+ *
+ *  - `pb_rendered_at` is stamped server-side, so the CMS's minimum-fill-time
+ *    spam check has a real duration to judge. It used to depend on a JS timer,
+ *    which meant a JS-less visitor submitted 0ms and had a genuine enquiry
+ *    silently discarded as spam while being told it was sent.
+ *  - `pb_return_to` says where to come back to, rather than trusting Referer.
  */
 import { fieldAttrs, honeypotAttrs, type FormSpec } from "@paperboycms/client";
 
@@ -23,14 +34,40 @@ interface Props {
 }
 const { spec, formId } = Astro.props;
 const honeypot = honeypotAttrs(spec);
+
+// State for the no-JS round trip. Keyed by form so two forms on one page cannot
+// claim each other's outcome.
+const token = String(formId).slice(0, 8);
+const sent = Astro.url.searchParams.get("sent") === token;
+const failed = Astro.url.searchParams.get("formError") === token;
+const renderedAt = Date.now();
+const returnTo = Astro.url.pathname;
 ---
 
 <form class="pb-form" method="POST" action="/api/submit" data-paperboy-form>
   <input type="hidden" name="pb_form_id" value={formId} />
   <input type="hidden" name="pb_honeypot_field" value={spec.honeypotField} />
   <input type="hidden" name="pb_elapsed_ms" value="0" data-paperboy-elapsed />
+  <input type="hidden" name="pb_rendered_at" value={String(renderedAt)} />
+  <input type="hidden" name="pb_return_to" value={returnTo} />
 
   {spec.title && <h2>{spec.title}</h2>}
+
+  {/* One live region for the whole form, so a screen reader hears the outcome
+      instead of hunting for it. The no-JS round trip lands here too. */}
+  <p
+    class:list={["pb-form__status", sent && "pb-form__status--ok", failed && "pb-form__status--bad"]}
+    role="status"
+    aria-live="polite"
+    data-paperboy-status
+    hidden={!sent && !failed}
+  >
+    {sent
+      ? "Thank you \u2014 your message is with us."
+      : failed
+        ? "Please check the highlighted fields and try again."
+        : ""}
+  </p>
 
   {spec.fields.map((field) => {
     // Static text collects no answer — it is copy between questions.
@@ -67,6 +104,9 @@ const honeypot = honeypotAttrs(spec);
         )}
 
         {field.helpText && <p class="pb-form__help" id={a.helpId}>{field.helpText}</p>}
+        {/* Filled in from the CMS's per-field messages: the editor's own words,
+            beside the input they belong to (WCAG 3.3.1). */}
+        <p class="pb-form__error" data-paperboy-error={field.name} hidden></p>
       </div>
     );
   })}
@@ -81,16 +121,85 @@ const honeypot = honeypotAttrs(spec);
 </form>
 
 <script>
-  // How long the visitor actually had the form open. The CMS discards
-  // submissions completed faster than a human could type, and a form that
-  // reports nothing loses that (invisible, accessible) protection.
-  document.querySelectorAll<HTMLFormElement>("form[data-paperboy-form]").forEach((form) => {
-    const opened = Date.now();
-    form.addEventListener("submit", () => {
-      const field = form.querySelector<HTMLInputElement>("input[data-paperboy-elapsed]");
-      if (field) field.value = String(Date.now() - opened);
+  // Progressive enhancement. Without this the form is a plain POST that
+  // redirects back with a status message; with it the visitor stays on the page
+  // and every error appears beside its own field.
+  const bind = () => {
+    document.querySelectorAll<HTMLFormElement>("form[data-paperboy-form]").forEach((form) => {
+      if (form.dataset.bound === "1") return;
+      form.dataset.bound = "1";
+      const opened = Date.now();
+
+      const status = form.querySelector<HTMLElement>("[data-paperboy-status]");
+      const say = (text: string, ok: boolean) => {
+        if (!status) return;
+        status.textContent = text;
+        status.hidden = false;
+        status.classList.toggle("pb-form__status--ok", ok);
+        status.classList.toggle("pb-form__status--bad", !ok);
+      };
+      const clearErrors = () =>
+        form.querySelectorAll<HTMLElement>("[data-paperboy-error]").forEach((el) => {
+          el.textContent = "";
+          el.hidden = true;
+        });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearErrors();
+
+        const elapsed = form.querySelector<HTMLInputElement>("input[data-paperboy-elapsed]");
+        if (elapsed) elapsed.value = String(Date.now() - opened);
+
+        const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+        const label = button ? button.textContent : "";
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Sending...";
+        }
+
+        try {
+          const res = await fetch(form.action, {
+            method: "POST",
+            headers: { accept: "application/json" },
+            body: new FormData(form),
+          });
+          const body = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            form.reset();
+            say(typeof body.message === "string" ? body.message : "Thank you - your message is with us.", true);
+            return;
+          }
+
+          const fields = (body.fields || {}) as Record<string, string>;
+          let first: HTMLElement | null = null;
+          for (const [name, message] of Object.entries(fields)) {
+            const slot = form.querySelector<HTMLElement>('[data-paperboy-error="' + name + '"]');
+            if (slot) {
+              slot.textContent = message;
+              slot.hidden = false;
+            }
+            if (!first) first = form.querySelector<HTMLElement>('[name="' + name + '"]');
+          }
+          const generic = typeof body.error === "string" && Object.keys(fields).length === 0
+            ? body.error
+            : "Please check the highlighted fields and try again.";
+          say(generic, false);
+          if (first) first.focus();
+        } catch {
+          say("Could not send that just now. Please try again.", false);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = label;
+          }
+        }
+      });
     });
-  });
+  };
+  bind();
+  document.addEventListener("astro:page-load", bind);
 </script>
 
 <style>
@@ -154,6 +263,22 @@ const honeypot = honeypotAttrs(spec);
     font-size: var(--pb-text-small);
     color: var(--pb-muted);
   }
+
+  .pb-form__error {
+    margin: 0;
+    font-size: var(--pb-text-small);
+    font-weight: 500;
+    color: var(--pb-danger);
+  }
+
+  .pb-form__status {
+    margin: 0;
+    padding: 0.85rem 1.15rem;
+    border: var(--pb-border-width) solid var(--pb-line);
+    border-radius: var(--pb-radius-control);
+  }
+  .pb-form__status--ok { background: var(--pb-accent); }
+  .pb-form__status--bad { background: #ffe2e0; }
 
   .pb-form__choices {
     border: 0;

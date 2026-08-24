@@ -14,7 +14,47 @@ generated `robots.txt` / `sitemap.xml` / `llms.txt` / `security.txt`.
 Nothing here is vendored from the CMS repo — it talks to a Paperboy over HTTP, so
 it works against an instance you run or one somebody else runs.
 
-## Quickstart
+## Try the whole thing in one command
+
+No CMS yet? This brings up Paperboy, its admin, and this site, with demo content
+already in it — a start page of blocks, articles, an FAQ, a profile, and a menu to
+browse it with:
+
+```bash
+git clone https://github.com/hybriden/paperboy-astro-starter my-site
+cd my-site
+docker compose -f docker-compose.demo.yml up -d --build
+```
+
+| | |
+| --- | --- |
+| http://localhost:4321 | the site |
+| http://localhost:8090 | the CMS admin — `admin@paperboy.test` / `Admin!Passw0rd` |
+| http://localhost:8091 | the API (OpenAPI UI at `/docs`) |
+
+Open a page in the admin and it appears beside a live preview of itself; click text
+in that preview and the right field opens.
+
+What you get: a fictional studio site — a start page of blocks (hero, service
+cards, numbered process, testimonial, call to action), three service pages, a
+journal with six articles and real pagination, an FAQ, two profiles, and a contact
+page with a working form. Plus a menu, a footer, breadcrumbs, a sitemap and
+llms.txt. It is a company that does not exist, on purpose: a demo whose every page
+explains the demo tells you nothing about handling real content, and you cannot
+show it to a stakeholder. `/about` says what it actually is.
+
+`scripts/demo-content.mjs` builds all of it through the Management API — log in,
+instantiate the built-in types, create pages, publish — so it doubles as a worked
+example of automating Paperboy. It leaves your edits alone on restart, and it
+trashes the CMS's own stock demo pages so you get one coherent site rather than
+two overlapping ones.
+
+Wipe it: `docker compose -f docker-compose.demo.yml down -v`
+
+> The demo stack's credentials are public constants and its cookies are non-Secure
+> so `http://localhost` works. It is for your machine, not a network.
+
+## Quickstart against your own CMS
 
 ```bash
 git clone https://github.com/hybriden/paperboy-astro-starter my-site
@@ -184,19 +224,30 @@ that. Tampered and expired tokens are rejected, and preview responses are always
 validation, error copy) — never markup — so `PaperboyForm.astro` styles it however
 you like while the CMS stays the authority. `src/pages/api/submit.ts` forwards to
 Paperboy, which validates against the current published definition and stores the
-submission. Spam checks (hidden field + fill timing) are handled for you; add your
-notification after a successful store, and skip it when the response says the
-submission was discarded.
+submission. Add your notification after a successful store, and skip it when the
+response says the submission was discarded.
+
+It works without JavaScript. With JS, the form submits in the background and puts
+each CMS-supplied message beside its own field; without, it is a plain POST that
+redirects back with a status message rather than showing you raw JSON. The form
+also carries a server-rendered timestamp, because the CMS's minimum-fill-time spam
+check would otherwise see "0ms" from a JS-less visitor and discard a real enquiry
+while telling them it was sent.
 
 **SEO comes computed.** Every page carries a `seo` block: meta, canonical, robots,
 OpenGraph, Twitter and per-`@type` JSON-LD plus a breadcrumb trail, built from the
 roles your content types declare and computed *after* field visibility, so a
 private field cannot leak into a meta tag.
 
-**`robots.txt`, `sitemap.xml`, `llms.txt` and `security.txt` are generated** by the
-CMS from your content and proxied from this origin — never stale after a publish,
-editable without a deploy. `noindex` pages are excluded from the sitemap
-automatically.
+**`robots.txt` and `security.txt` are generated** by the CMS from your content and
+proxied from this origin — never stale after a publish, editable without a deploy.
+
+`sitemap.xml` and `llms.txt` are BUILT here instead, from the CMS's page
+inventory (`/delivery/pages`). The CMS generates those two as well, but it
+composes URLs as `{base}/{locale}{urlPath}` — the reference frontend's scheme —
+and this app serves pages without a locale segment, so proxying produced a
+sitemap where every URL was an alias of the canonical one. `noindex` pages are
+excluded, and the start page is emitted as `/`.
 
 ## Layout
 
@@ -220,6 +271,7 @@ src/
     kitchen-sink/      every block and template, from fixtures (dev only)
     api/submit.ts      form submissions -> CMS -> your notification
     robots.txt.ts  sitemap.xml.ts  llms.txt.ts  .well-known/security.txt.ts
+scripts/demo-content.mjs  the demo site, built through the Management API
   styles/
     tokens.css         the design system, in variables
     app.css            base + component classes
