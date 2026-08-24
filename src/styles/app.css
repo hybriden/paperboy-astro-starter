@@ -241,10 +241,10 @@ a {
   display: grid;
   gap: var(--pb-gap-lg);
   grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
-  /* Stretch, so a row of cards ends level. The cards themselves push their last
-     row to the bottom, and a card with no photograph renders a band where one
-     would be — without those two things, stretching leaves a slab of empty
-     colour under the short cards, which is why this used to be `start`. */
+  /* Stretch, so a row of cards ends level even when only some of them have a
+     photograph. This only works because `.pb-teaser__more` is pushed to the
+     bottom: stretching alone leaves a slab of empty colour under the short
+     cards, which reads as a layout bug and is why this used to be `start`. */
   align-items: stretch;
 }
 
