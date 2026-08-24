@@ -181,7 +181,8 @@ async function main() {
     console.log(`Found an existing ${c.bold(".env")} — leaving it alone (pass --force to replace it).`);
     if (missing.length) console.log(c.red(`Still missing: ${missing.join(", ")}`));
     const verified = await verify(existing);
-    process.exit(verified ? 0 : 1);
+    process.exitCode = verified ? 0 : 1;
+    return;
   }
 
   /** Gather candidates without asking anything yet. */
@@ -280,6 +281,19 @@ export async function verify(values, log = console.log) {
   } else if (start.status === 404) {
     // Not fatal: an empty instance has no start page yet.
     log(c.dim("  start page  none configured yet (Settings -> Site -> Start page)"));
+  }
+
+  if (pub.status === 401 && prev.status === 401) {
+    // Seen the first time this ran against a real stack: `docker compose up`
+    // runs the seed, but the seed SKIPS a database that already holds content —
+    // so a freshly generated .env can carry keys the database has never seen.
+    log("");
+    log("  Both keys were rejected, but the API answered — so the URL is right and");
+    log("  these keys are not in its database. That happens when the instance was");
+    log("  seeded with different keys (the seed skips a database that already has");
+    log("  content, so a newly generated .env can disagree with it). Either mint a");
+    log("  key in the admin under Settings -> API keys and paste it here, or reseed");
+    log("  that instance deliberately with FORCE_SEED=1 (which erases its content).");
   }
 
   if (!values.PREVIEW_SECRET) {

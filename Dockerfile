@@ -25,6 +25,12 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4321
 
+# ~530MB, of which ~230MB is this install. The built server itself only imports a
+# handful of small packages, but Astro is a runtime dependency and npm brings its
+# whole tree (sharp, esbuild, rolldown, shiki) along. Trimming that means either
+# hand-listing Astro's internals — which breaks on every Astro upgrade — or
+# vendoring the runtime deps. Neither is worth it for a starter, so the size is
+# deliberate rather than overlooked.
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 

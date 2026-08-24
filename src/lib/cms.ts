@@ -33,6 +33,16 @@ export interface CmsConfig {
   publicKey: string;
   previewKey: string;
   previewSecret: string;
+  /**
+   * Which language to serve. Empty means "whatever the API's default is".
+   *
+   * Content in Paperboy is localized, and a page's urlPath is per LOCALE — so a
+   * Norwegian site whose front page lives at /hjem gets a 404 from an English
+   * request. One route can only serve one locale; set this to pick which. For a
+   * genuinely multilingual site, add a [locale] segment to the route and pass it
+   * through instead (apps/web in the Paperboy repo does that).
+   */
+  locale: string;
 }
 
 export function config(env: Env): CmsConfig {
@@ -41,6 +51,7 @@ export function config(env: Env): CmsConfig {
     publicKey: readEnv(env, "PAPERBOY_PUBLIC_KEY") ?? "",
     previewKey: readEnv(env, "PAPERBOY_PREVIEW_KEY") ?? "",
     previewSecret: readEnv(env, "PREVIEW_SECRET") ?? "",
+    locale: readEnv(env, "PAPERBOY_LOCALE") ?? "",
   };
 }
 

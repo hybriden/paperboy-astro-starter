@@ -66,6 +66,13 @@ your machine, set `PAPERBOY_API_URL=http://host.docker.internal:8091`.
 
 Delivery keys are per **site**, so a multisite instance has a pair per site.
 
+One optional fifth value: **`PAPERBOY_LOCALE`**. Content in Paperboy is localized
+and a page's URL belongs to a locale — the front page that is `/home` in English
+is `/hjem` in Norwegian — so one route serves one language. Set this to pick which
+(`nb`, `de`, …); unset means the API's default. For a genuinely multilingual site,
+add a `[locale]` segment to the route and pass it to `getByPath` instead; the
+reference frontend in the Paperboy repo (`apps/web`) does exactly that.
+
 To see your site inside the CMS, set the site's preview URL to this app
 (Settings → Site → Preview URL) and the admin's preview pane will frame it.
 
