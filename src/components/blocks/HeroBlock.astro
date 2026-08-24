@@ -22,7 +22,7 @@ const primary = link(data, "primaryLink");
 const secondary = link(data, "secondaryLink");
 ---
 
-<div class="hero">
+<div class:list={["hero", image && "hero--media"]}>
   <div class="hero__text">
     {heading && <h1 {...pbField("heading", preview)}>{heading}</h1>}
     {subtitle && <p class="hero__sub" {...pbField("subtitle", preview)}>{subtitle}</p>}
@@ -65,8 +65,12 @@ const secondary = link(data, "secondaryLink");
     align-items: center;
     grid-template-columns: 1fr;
   }
+  /* Two columns ONLY when there is an image to put in the second one. Splitting
+     unconditionally left the heading cramped into half the width beside an empty
+     column — which reads as a broken layout, and is invisible in a fixture that
+     always has an image. */
   @media (min-width: 900px) {
-    .hero { grid-template-columns: 1fr 1fr; }
+    .hero--media { grid-template-columns: 1fr 1fr; }
   }
   .hero__text {
     display: flex;
