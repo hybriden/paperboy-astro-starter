@@ -33,9 +33,19 @@ const fields = (extra: Record<string, string> = {}) =>
     ...extra,
   });
 
-/** What the CMS would answer. */
+/** What the CMS would answer. Typed like fetch, so the recorded call is too. */
 const cmsReplies = (status: number, payload: unknown) =>
-  vi.fn(async () => new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } }));
+  vi.fn(
+    async (_url: string | URL | Request, _init?: RequestInit) =>
+      new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } }),
+  );
+
+/** The JSON body the route posted to the CMS on its first (only) call. */
+const postedToCms = (spy: ReturnType<typeof cmsReplies>) => {
+  const call = spy.mock.calls[0];
+  if (!call) throw new Error("the route never called the CMS");
+  return JSON.parse(String(call[1]?.body));
+};
 
 beforeEach(() => {
   vi.stubEnv("PAPERBOY_API_URL", CMS);
@@ -48,14 +58,13 @@ afterEach(() => {
 });
 
 describe("POST /api/submit — a browser without JavaScript", () => {
-  it("redirects back to the page that submitted, not to the site root", () => {
+  it("redirects back to the page that submitted, not to the site root", async () => {
     // The bug: a no-JS visitor landed on "/", which has no form, so a stored
     // submission produced no confirmation anywhere.
     vi.stubGlobal("fetch", cmsReplies(200, { submissionId: "sub_1" }));
-    return POST(context(fields())).then((res) => {
-      expect(res.status).toBe(303);
-      expect(res.headers.get("location")).toBe("/contact?sent=doc_form#pb-form");
-    });
+    const res = await POST(context(fields()));
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/contact?sent=doc_form#pb-form");
   });
 
   it("carries a rejection back to the same page", async () => {
@@ -112,7 +121,7 @@ describe("POST /api/submit — what it sends to the CMS", () => {
     vi.stubGlobal("fetch", spy);
     await POST(context(fields()));
 
-    const sent = JSON.parse(String(spy.mock.calls[0][1].body));
+    const sent = postedToCms(spy);
     expect(Object.keys(sent.values).sort()).toEqual(["consent", "email", "message", "name"]);
     // Unknown keys are rejected by the CMS (422), so leaking a control field
     // here would fail every submission.
@@ -127,7 +136,7 @@ describe("POST /api/submit — what it sends to the CMS", () => {
     vi.stubGlobal("fetch", spy);
     await POST(context(fields({ pb_elapsed_ms: "0" })));
 
-    const sent = JSON.parse(String(spy.mock.calls[0][1].body));
+    const sent = postedToCms(spy);
     expect(sent.elapsedMs).toBeGreaterThanOrEqual(9000);
   });
 });
