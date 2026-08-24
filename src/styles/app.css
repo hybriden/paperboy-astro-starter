@@ -298,7 +298,12 @@ a {
 }
 
 .pb-figure { margin: 0; }
+/* width: 100% is not cosmetic here. Without it the image renders at the
+   intrinsic size of whichever srcset candidate the browser picked — which is
+   chosen from the layout width at parse time — so a figure in a wide column
+   showed a small picture floating in a large bordered box. */
 .pb-figure img {
+  width: 100%;
   border-radius: var(--pb-radius-card);
   border: var(--pb-border-width) solid var(--pb-line);
 }
