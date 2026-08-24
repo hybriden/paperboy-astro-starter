@@ -91,5 +91,11 @@ const shown = validDate
   }
   .article__figure { margin-bottom: var(--pb-gap-lg); }
   .article__body { max-width: 68ch; margin-inline: auto; }
-  .article__blocks { padding-block: var(--pb-section-y); }
+  /* The same measure as the body above it. Without it a quote block started at
+     the container edge, 192px left of every other line on the page. */
+  .article__blocks {
+    padding-block: var(--pb-section-y);
+    max-width: 68ch;
+    margin-inline: auto;
+  }
 </style>

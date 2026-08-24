@@ -32,7 +32,7 @@ const menu: AreaBlock[] = area(data, "menuLinks");
   <div class="pb-container site-header__inner">
     <a class="site-header__brand" href="/">
       {logo ? (
-        <img src={mediaUrl(logo.url, { w: 320, format: "webp" })} alt={logo.alt || siteName} height="36" />
+        <img class="site-header__logo" src={mediaUrl(logo.url, { w: 320, format: "webp" })} alt={logo.alt || siteName} />
       ) : (
         <span class="site-header__wordmark">{siteName}</span>
       )}
@@ -67,6 +67,7 @@ const menu: AreaBlock[] = area(data, "menuLinks");
     font-weight: 500;
   }
   .site-header__wordmark { letter-spacing: -0.02em; }
+  .site-header__logo { height: 2.25rem; width: auto; }
   .site-header__menu {
     display: flex;
     flex-wrap: wrap;
@@ -76,8 +77,31 @@ const menu: AreaBlock[] = area(data, "menuLinks");
     padding: 0;
     list-style: none;
   }
-  .site-header__menu a { text-decoration: none; }
-  .site-header__menu a:hover { text-decoration: underline; }
+  .site-header__menu :global(a) {
+    text-decoration: none;
+    /* A tap target, not a line of text: 23px high is under the WCAG 2.2 minimum. */
+    display: inline-block;
+    padding-block: 0.6rem;
+  }
+  .site-header__menu :global(a:hover) { text-decoration: underline; }
+
+  /* One row rather than two ragged ones with "Contact" orphaned on the second.
+     Tightened enough that six items fit a 390px phone; narrower than that it
+     scrolls, with the scrollbar hidden because the clipped item is the affordance
+     and a chunky bar under the masthead is not. */
+  @media (max-width: 700px) {
+    .site-header__nav {
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .site-header__nav::-webkit-scrollbar { display: none; }
+    .site-header__menu {
+      flex-wrap: nowrap;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+    }
+  }
 
   /* Visible only when focused — the first thing a keyboard user reaches. */
   .site-header__skip {

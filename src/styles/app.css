@@ -92,10 +92,31 @@ a {
 
 /* Vertical rhythm between blocks in a content area. Owned by the area, not by
    each block, so a block dropped anywhere inherits the right spacing. */
+/* A grid rather than a column, so a block can say it is SMALL. Everything spans
+   the full width by default — that is what a banner, a form or a teaser list
+   wants — and a person card takes one of two columns, because two of them
+   stacked at half width leave a hole beside each. */
 .pb-area {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pb-section-y);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pb-section-y) var(--pb-gap-lg);
+}
+.pb-area > * {
+  grid-column: 1 / -1;
+}
+.pb-area > .pb-block--personblock {
+  grid-column: span 1;
+}
+@media (max-width: 700px) {
+  .pb-area > .pb-block--personblock {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The form is already capped at 34rem; its PANEL was not, so the grey ran the
+   full 1168px with a 580px column of nothing beside the fields. */
+.pb-block--form .pb-panel {
+  max-width: 40rem;
 }
 
 .pb-block { scroll-margin-top: 6rem; }
@@ -319,13 +340,6 @@ a {
  * and has nothing else to reserve with. The ratio is also a cap: at 3:2 a
  * full-width lead photograph ran 779px tall on a desktop and filled the whole
  * viewport before you reached a word of the article. */
-/* A PersonBlock is one small card, and every block is rendered as a full-width
-   section. Left alone, the card was 1168px wide with its content ending at
-   493 — more empty card than card. */
-.pb-block--personblock .person {
-  max-width: 34rem;
-}
-
 .pb-figure img {
   width: 100%;
   aspect-ratio: 16 / 9;

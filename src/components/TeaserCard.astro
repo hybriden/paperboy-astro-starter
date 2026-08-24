@@ -38,7 +38,7 @@ const toneClass = {
 const Tag = href ? "a" : "div";
 ---
 
-<Tag class={`pb-card pb-teaser ${toneClass}`} href={href ?? undefined}>
+<Tag class={`pb-card pb-teaser ${toneClass} ${image ? "" : "pb-teaser--textonly"}`} href={href ?? undefined}>
   {/* The photograph is DECORATIVE here, deliberately: it sits inside the card's
       own link, so alt text would be prepended to the link's accessible name —
       "Hands sketching a diagram… Design systems One set of components…". The
@@ -71,9 +71,7 @@ const Tag = href ? "a" : "div";
     flex-direction: column;
     gap: 0.75rem;
     text-decoration: none;
-    /* Fill the grid row, so every card in it ends level — with `margin-top: auto`
-       on the last row, a card with no photograph gets the slack as whitespace
-       above "Read more" rather than being visibly shorter than its neighbours. */
+    /* Fill the grid row, so every card in it ends level. */
     height: 100%;
   }
   a.pb-teaser:hover {
@@ -103,4 +101,11 @@ const Tag = href ? "a" : "div";
     opacity: 0.85;
   }
   .pb-teaser__more { margin-top: auto; }
+  /* Without a photograph, `margin-top: auto` pooled ALL the slack in one place:
+     245px of nothing between the text and "Read more", in the band where the
+     next card shows its picture — which reads as an image that failed to load.
+     Centring splits it above and below, and the card becomes a typographic
+     tile on purpose. */
+  .pb-teaser--textonly { justify-content: center; }
+  .pb-teaser--textonly .pb-teaser__more { margin-top: 1rem; }
 </style>

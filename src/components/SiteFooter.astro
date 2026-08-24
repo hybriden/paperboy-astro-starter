@@ -60,8 +60,10 @@ const hasContent = links.length > 0 || text.trim().length > 0 || preview;
     flex-direction: column;
     gap: 0.75rem;
   }
-  .site-footer__links a { text-decoration: none; }
-  .site-footer__links a:hover {
+  /* :global, because the anchor comes from LinkItemBlock and carries its scope,
+     not this one's — without it every footer link is permanently underlined. */
+  .site-footer__links :global(a) { text-decoration: none; }
+  .site-footer__links :global(a:hover) {
     text-decoration: underline;
     text-decoration-color: var(--pb-accent);
   }

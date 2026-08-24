@@ -269,7 +269,7 @@ const PHOTOS = {
   hero: {
     id: "1552664730-d307ca884978",
     crop: "w=1600&h=1200",
-    alt: "A woman adding sticky notes to a whiteboard while four colleagues watch from a meeting table",
+    alt: "A woman adding sticky notes to a whiteboard while five colleagues work at a meeting table",
   },
   officeEmpty: {
     id: "1497366754035-f200968a6e72",
@@ -288,59 +288,59 @@ const PHOTOS = {
   wireframe: {
     id: "1581291518857-4e27b48ff24e",
     crop: "w=1200&h=750",
-    alt: "A hand drawing a page wireframe on paper with a pencil",
+    alt: "A hand drawing a page wireframe on paper with a black pen",
   },
-  codeScreen: {
-    id: "1461749280684-dccba630e2f6",
+  deviceCheck: {
+    id: "1551650975-87deedd944c3",
     crop: "w=1200&h=750",
-    alt: "Source code on a dark screen",
+    alt: "A hand holding a phone showing a dashboard, with the same design open on a desktop behind it",
   },
-  stickyNotes: {
-    id: "1542626991-cbc4e32524cc",
+  newspapers: {
+    id: "1478940020726-e9e191651f1a",
     crop: "w=1200&h=750",
-    alt: "A man adding a note to a wall covered in handwritten sticky notes",
+    alt: "A stack of folded newspapers",
   },
 
   // A second, different photograph for each service page, so clicking a card
   // does not show you the same picture again.
   sketching: {
     id: "1454165804606-c3d57bc86b40",
-    crop: "w=1200&h=800",
+    crop: "w=1200&h=675",
     alt: "Hands sketching a diagram in a notebook beside two open laptops",
   },
   pairing: {
     id: "1527689368864-3a821dbccc34",
-    crop: "w=1200&h=800",
+    crop: "w=1200&h=675",
     alt: "Two people sharing one laptop at a table by a window, seen from behind",
   },
-  meeting: {
-    id: "1521737604893-d14cc237f11d",
-    crop: "w=1200&h=800",
-    alt: "Six people talking around a table in a meeting room",
+  workshop: {
+    id: "1573167507387-6b4b98cb7c13",
+    crop: "w=1200&h=675",
+    alt: "A dozen people at a long meeting table, one of them presenting at the far end",
   },
 
-  // Article leads. All landscape: a 16:10 card cannot hold a vertical frame
-  // without cutting the top off whatever is in it. And all of DIFFERENT things —
-  // a review counted ten of thirteen photographs containing a laptop, which
-  // reads as one stock pack however carefully each one was chosen.
-  tableNotes: {
-    id: "1517048676732-d65bc937f952",
-    crop: "w=1200&h=800",
-    alt: "Several pairs of hands writing on documents spread across a wooden table",
+  // Article leads, at 16:9 like every other figure. And all of DIFFERENT things:
+  // one review counted ten of thirteen photographs containing a laptop, and the
+  // round that fixed THAT left five photographs of a hand holding a pen. Check
+  // the set, not the picture.
+  scaffold: {
+    id: "1636362556682-11231883c01c",
+    crop: "w=1200&h=675",
+    alt: "Scaffolding covering the front of a building against a blue sky",
   },
   deskOverhead: {
     id: "1519389950473-47ba0277781c",
-    crop: "w=1200&h=800",
+    crop: "w=1200&h=675",
     alt: "A shared desk photographed from above, covered with laptops, notebooks and coffee cups",
   },
   whiteboard: {
     id: "1607703703674-df96af81dffa",
-    crop: "w=1200&h=800",
+    crop: "w=1200&h=675",
     alt: "A hand writing the word AUDIENCE on a whiteboard",
   },
   archive: {
     id: "1762627105132-f6ed848a23bf",
-    crop: "w=1200&h=800",
+    crop: "w=1200&h=675",
     alt: "Rows of white archive boxes on shelves either side of a wooden door",
   },
 
@@ -365,7 +365,13 @@ const PHOTOS = {
  * (server-generated name, sniffed type, 5MB cap) and the PUT sets the alt text.
  */
 async function uploadPhoto(key, photo) {
-  const url = `https://images.unsplash.com/photo-${photo.id}?${photo.crop}&fit=crop&q=75&fm=jpg`;
+  // crop=faces,edges, because the DEFAULT is a centred crop and a centred crop is
+  // how a photograph of people loses their heads: it takes the middle of the
+  // frame regardless of what is in it. This anchors on faces, falling back to
+  // edge detection when there are none — it fixed a decapitated card, a lead
+  // image that was 45% ceiling, and a portrait cropped to a forehead, all at
+  // once and without changing a single photograph.
+  const url = `https://images.unsplash.com/photo-${photo.id}?${photo.crop}&fit=crop&crop=faces,edges&q=75&fm=jpg`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch ${key}: ${res.status}`);
   const bytes = new Uint8Array(await res.arrayBuffer());
@@ -410,7 +416,7 @@ const SERVICES = [
     name: "Design systems",
     photo: "wireframe",
     figure: "sketching",
-    caption: "Component naming, settled on paper before anyone opens an editor.",
+    caption: "Component naming, worked out on paper with the build open beside it.",
     teaser: "One set of components, documented, that survives the next redesign.",
     intro: "We build the component library, write down the rules, and leave your team able to extend it.",
     body: [
@@ -424,7 +430,7 @@ const SERVICES = [
   },
   {
     name: "Web development",
-    photo: "codeScreen",
+    photo: "deviceCheck",
     figure: "pairing",
     caption: "Pairing on the front end, where most of the performance work happens.",
     teaser: "Fast sites that editors can change without opening a ticket.",
@@ -440,8 +446,8 @@ const SERVICES = [
   },
   {
     name: "Content operations",
-    photo: "stickyNotes",
-    figure: "meeting",
+    photo: "newspapers",
+    figure: "workshop",
     caption: "A modelling workshop with the people who publish every day.",
     teaser: "Getting an editorial team from three-week deploys to publishing themselves.",
     intro: "Modelling, migration, and the training that makes both stick.",
@@ -458,7 +464,7 @@ const ARTICLES = [
     intro: "Frameworks get replaced every few years. The shape of your content does not.",
     author: "Ingrid Solberg",
     date: "2026-01-15T09:00:00.000Z",
-    photo: "tableNotes",
+    photo: "scaffold",
     body: [
       "Every rebuild starts with an argument about frameworks and ends with the same realisation: the hard part was never the rendering. It was that nobody could say what a page actually is.",
       "Model the things your organisation genuinely talks about — a course, a product, a person — and give each the fields it really has. Resist the page type that exists because one campaign needed a third column.",
@@ -752,7 +758,7 @@ async function main() {
 
   const contact = await page("SectionPage", "Contact", {
     heading: "Get in touch",
-    intro: "Tell us roughly what you are trying to do and we will reply within two working days.",
+    intro: "Tell us roughly what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
     teaserTitle: "Contact",
     teaserText: "A form, an email address, and a human at the other end.",
   });
@@ -803,7 +809,7 @@ async function main() {
   // --- a real form, stored as content ---------------------------------------
   const form = await page("Form", "Contact form", {
     title: "Tell us about the project",
-    intro: rt("A few questions, and we will come back to you within two working days."),
+    intro: rt("A few questions. Nothing here goes on a mailing list."),
     submitLabel: "Send enquiry",
     fields: [
       // errorMessage is the EDITOR's wording, returned per field and rendered
@@ -813,7 +819,7 @@ async function main() {
         name: "name",
         label: "Your name",
         required: true,
-        placeholder: "Ingrid Solberg",
+        placeholder: "Kari Nordmann",
         errorMessage: "We would like to know who we are replying to.",
       }),
       b("FormEmailField", { name: "email", label: "Email", required: true, placeholder: "you@company.no" }),
@@ -840,7 +846,7 @@ async function main() {
   // documentId, which an inline copy would not have.
   await setData(contact, "SectionPage", "Contact", {
     heading: "Get in touch",
-    intro: "Tell us roughly what you are trying to do and we will reply within two working days.",
+    intro: "Tell us roughly what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
     teaserTitle: "Contact",
     teaserText: "A form, an email address, and a human at the other end.",
     mainArea: [ref("Form", form)],
@@ -859,8 +865,8 @@ async function main() {
         secondaryLink: pageLink(services, "See what we do"),
       }),
       b("TeaserListBlock", {
-        heading: "What we do",
-        intro: "Most projects start with one of these. Plenty grow into another.",
+        heading: "Where projects start",
+        intro: "Three services. Most people arrive needing one of them.",
         teasers: serviceIds.map((id) => ref("SectionPage", id)),
         moreLink: pageLink(services, "All services"),
       }),
@@ -904,9 +910,9 @@ async function main() {
   });
   await page("FooterSettings", "Footer", {
     links: [
+      b("LinkItemBlock", { link: pageLink(services, "Services") }),
       b("LinkItemBlock", { link: pageLink(journal, "Journal") }),
-      b("LinkItemBlock", { link: pageLink(person, "Ingrid Solberg") }),
-      b("LinkItemBlock", { link: pageLink(person2, "Jonas Berg") }),
+      b("LinkItemBlock", { link: pageLink(about, "About") }),
       b("LinkItemBlock", { link: pageLink(contact, "Contact") }),
       b("LinkItemBlock", { link: { href: "https://github.com/hybriden/paperboy", text: "Built with Paperboy" } }),
     ],
