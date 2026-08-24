@@ -39,13 +39,17 @@ const Tag = href ? "a" : "div";
 ---
 
 <Tag class={`pb-card pb-teaser ${toneClass}`} href={href ?? undefined}>
+  {/* The photograph is DECORATIVE here, deliberately: it sits inside the card's
+      own link, so alt text would be prepended to the link's accessible name —
+      "Hands sketching a diagram… Design systems One set of components…". The
+      heading beside it already says where the link goes. */}
   {image && (
     <img
       class="pb-teaser__img"
       src={mediaUrl(image.url, { w: 640, format: "webp" })}
       srcset={mediaSrcset(image.url, [320, 640, 960])}
       sizes="(max-width: 700px) 100vw, 380px"
-      alt={image.alt ?? ""}
+      alt=""
       loading="lazy"
       decoding="async"
     />
@@ -67,6 +71,10 @@ const Tag = href ? "a" : "div";
     flex-direction: column;
     gap: 0.75rem;
     text-decoration: none;
+    /* Fill the grid row, so every card in it ends level — with `margin-top: auto`
+       on the last row, a card with no photograph gets the slack as whitespace
+       above "Read more" rather than being visibly shorter than its neighbours. */
+    height: 100%;
   }
   a.pb-teaser:hover {
     box-shadow: var(--pb-shadow-press);
@@ -77,6 +85,7 @@ const Tag = href ? "a" : "div";
      the padding, which reads as a thumbnail someone dropped in. The top corners
      follow the card's radius; 1px in, so the border still draws cleanly. */
   .pb-teaser__img {
+    display: block;
     width: calc(100% + 2 * var(--pb-card-pad));
     /* The global `img { max-width: 100% }` clamps that calc back to the
        content box, so the photograph bled left and stopped short on the right. */
@@ -84,6 +93,9 @@ const Tag = href ? "a" : "div";
     margin: calc(-1 * var(--pb-card-pad)) calc(-1 * var(--pb-card-pad)) 0.5rem;
     aspect-ratio: 16 / 10;
     object-fit: cover;
+    /* Top-biased, because these are photographs of people: a centred crop of a
+       16:10 window takes the middle and cuts the top of the head off. */
+    object-position: 50% 30%;
     border-radius: calc(var(--pb-radius-card) - 1px) calc(var(--pb-radius-card) - 1px) 0 0;
   }
   .pb-teaser__text {

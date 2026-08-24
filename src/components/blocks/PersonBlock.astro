@@ -31,11 +31,14 @@ const Tag = as;
 
 <article class="person pb-card">
   <header class="person__head">
+    {/* The portrait is decorative: the name is right beside it, and announcing
+        "portrait of a smiling woman in a red top" describes the photograph
+        rather than telling you who this is. */}
     {image ? (
       <img
         class="pb-avatar"
         src={mediaUrl(image.url, { w: 220, format: "webp" })}
-        alt={image.alt || name}
+        alt=""
         loading="lazy"
         decoding="async"
       />

@@ -276,26 +276,51 @@ const PHOTOS = {
     crop: "w=1600&h=900",
     alt: "An empty open-plan office with glass partitions and a long shared desk",
   },
-  handshake: {
-    id: "1600880292203-757bb62b4baf",
-    crop: "w=1600&h=1000",
-    alt: "Two colleagues celebrating over an open laptop in a bright meeting room",
+  // /about. Replaces a corporate high-five, which is the most parodied genre in
+  // stock photography and sat directly under copy about not overselling.
+  studioDesk: {
+    id: "1497215728101-856f4ea42174",
+    crop: "w=1600&h=900",
+    alt: "A long desk beside a window wall with plants and a single laptop",
   },
+
+  // One per service, each showing that service rather than "people at laptops".
+  wireframe: {
+    id: "1581291518857-4e27b48ff24e",
+    crop: "w=1200&h=750",
+    alt: "A hand drawing a page wireframe on paper with a pencil",
+  },
+  codeScreen: {
+    id: "1461749280684-dccba630e2f6",
+    crop: "w=1200&h=750",
+    alt: "Source code on a dark screen",
+  },
+  editorialDesk: {
+    id: "1499750310107-5fef28a66643",
+    crop: "w=1200&h=750",
+    alt: "A wooden desk with an open laptop, a notebook and a cup of coffee",
+  },
+
+  // A second, different photograph for each service page, so clicking a card
+  // does not show you the same picture again.
   sketching: {
     id: "1454165804606-c3d57bc86b40",
-    crop: "w=1200&h=900",
+    crop: "w=1200&h=800",
     alt: "Hands sketching a diagram in a notebook beside two open laptops",
   },
-  code: {
-    id: "1531482615713-2afd69097998",
-    crop: "w=1200&h=900",
-    alt: "Two developers looking at code on a large monitor in an office",
+  codeBlur: {
+    id: "1555949963-ff9fe0c870eb",
+    crop: "w=1200&h=800",
+    alt: "Coloured code on a screen, photographed close and out of focus",
   },
-  teamLaptops: {
-    id: "1522071820081-009f0129c71c",
-    crop: "w=1200&h=900",
-    alt: "Four people working at laptops around a table, seen from behind",
+  meeting: {
+    id: "1521737604893-d14cc237f11d",
+    crop: "w=1200&h=800",
+    alt: "Six people talking around a table in a meeting room",
   },
+
+  // Article leads. All landscape: a 16:10 card cannot hold a vertical frame
+  // without cutting the top off whatever is in it.
   tableNotes: {
     id: "1517048676732-d65bc937f952",
     crop: "w=1200&h=800",
@@ -306,25 +331,28 @@ const PHOTOS = {
     crop: "w=1200&h=800",
     alt: "A shared desk photographed from above, covered with laptops, notebooks and coffee cups",
   },
-  twoTalking: {
-    id: "1573496359142-b8d87734a5a2",
+  pointingAtScreen: {
+    id: "1516321318423-f06f85e504b3",
     crop: "w=1200&h=800",
-    alt: "Two people in conversation beside an orange wall",
+    alt: "One person pointing at something on a laptop screen while another types",
   },
   conference: {
     id: "1542744173-8e7e53415bb0",
     crop: "w=1200&h=800",
     alt: "A full conference room, people at laptops around a long table",
   },
+
+  // Both portraits in the same register: plain backdrop, direct gaze. Two staff
+  // photographs from different worlds read as two different companies.
   ingrid: {
-    id: "1494790108377-be9c29b29330",
+    id: "1580489944761-15a19d654956",
     crop: "w=800&h=1000",
-    alt: "Portrait of a smiling woman in a red top",
+    alt: "Ingrid Solberg",
   },
   jonas: {
     id: "1472099645785-5658abf4ff4e",
     crop: "w=800&h=1000",
-    alt: "Portrait of a smiling man wearing glasses against a plain background",
+    alt: "Jonas Berg",
   },
 };
 
@@ -378,7 +406,8 @@ async function uploadPhotos() {
 const SERVICES = [
   {
     name: "Design systems",
-    photo: "sketching",
+    photo: "wireframe",
+    figure: "sketching",
     caption: "Component naming, settled on paper before anyone opens an editor.",
     teaser: "One set of components, documented, that survives the next redesign.",
     intro: "We build the component library, write down the rules, and leave your team able to extend it.",
@@ -393,7 +422,8 @@ const SERVICES = [
   },
   {
     name: "Web development",
-    photo: "code",
+    photo: "codeScreen",
+    figure: "codeBlur",
     caption: "Pairing on the front end, with the performance budget on screen.",
     teaser: "Fast sites that editors can change without opening a ticket.",
     intro: "Front ends that load quickly, meet WCAG, and hand real control to the people who write the words.",
@@ -408,7 +438,8 @@ const SERVICES = [
   },
   {
     name: "Content operations",
-    photo: "teamLaptops",
+    photo: "editorialDesk",
+    figure: "meeting",
     caption: "A modelling workshop with the people who publish every day.",
     teaser: "Getting an editorial team from three-week deploys to publishing themselves.",
     intro: "Modelling, migration, and the training that makes both stick.",
@@ -447,7 +478,7 @@ const ARTICLES = [
     intro: "You can ship a perfect component library and still fail an audit on link text.",
     author: "Jonas Berg",
     date: "2026-03-11T09:00:00.000Z",
-    photo: "twoTalking",
+    photo: "pointingAtScreen",
     body: [
       "Most accessibility findings we see on editorial sites are not code. They are twelve links that all say read more, headings chosen for their size, and images with a filename as the alt text.",
       "The fix is partly training and partly making the right thing the easy thing: a link field that asks for its text, an image field that will not save without a description.",
@@ -542,7 +573,7 @@ async function main() {
           // page itself — one asset, two placements, which is how a media
           // library is actually used.
           mainArea: [
-            b("ImageBlock", { image: photo[s.photo], caption: s.caption }),
+            b("ImageBlock", { image: photo[s.figure], caption: s.caption }),
             ...(i === SERVICES.length - 1
               ? [ref("BannerBlock", cta)]
               : [b("QuoteBlock", { quote: s.quote, source: s.quoteSource }), b("TextBlock", { body: rt(s.extra) })]),
@@ -742,8 +773,8 @@ async function main() {
         email: "ingrid@nordlys.example",
       }),
       b("ImageBlock", {
-        image: photo.handshake,
-        caption: "The moment a client realises they can publish it themselves.",
+        image: photo.studioDesk,
+        caption: "The Oslo office, on one of the quiet afternoons.",
       }),
       b("LinkListBlock", {
         heading: "Elsewhere on this site",

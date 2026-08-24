@@ -34,7 +34,7 @@ const bio = rich(data, "bio");
           src={mediaUrl(image.url, { w: 640, format: "webp" })}
           srcset={mediaSrcset(image.url, [320, 640, 960])}
           sizes="(max-width: 900px) 60vw, 320px"
-          alt={image.alt || name}
+          alt={name || image.alt || ""}
           {...pbField("image", preview)}
           decoding="async"
         />

@@ -241,9 +241,11 @@ a {
   display: grid;
   gap: var(--pb-gap-lg);
   grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
-  /* Cards hug their own content. Stretching a row to the tallest card leaves a
-     slab of empty colour under the short ones, which reads as a layout bug. */
-  align-items: start;
+  /* Stretch, so a row of cards ends level. The cards themselves push their last
+     row to the bottom, and a card with no photograph renders a band where one
+     would be — without those two things, stretching leaves a slab of empty
+     colour under the short cards, which is why this used to be `start`. */
+  align-items: stretch;
 }
 
 .pb-grid--2 {
@@ -301,9 +303,19 @@ a {
 /* width: 100% is not cosmetic here. Without it the image renders at the
    intrinsic size of whichever srcset candidate the browser picked — which is
    chosen from the layout width at parse time — so a figure in a wide column
-   showed a small picture floating in a large bordered box. */
+   showed a small picture floating in a large bordered box.
+ *
+ * The aspect ratio RESERVES the space before the bytes arrive. Paperboy stores
+ * no dimensions for an asset (the `asset` table has filename, mime, size, url,
+ * alt — no width or height), so a frontend cannot emit width/height attributes
+ * and has nothing else to reserve with. The ratio is also a cap: at 3:2 a
+ * full-width lead photograph ran 779px tall on a desktop and filled the whole
+ * viewport before you reached a word of the article. */
 .pb-figure img {
   width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: 50% 40%;
   border-radius: var(--pb-radius-card);
   border: var(--pb-border-width) solid var(--pb-line);
 }
