@@ -295,10 +295,10 @@ const PHOTOS = {
     crop: "w=1200&h=750",
     alt: "Source code on a dark screen",
   },
-  editorialDesk: {
-    id: "1499750310107-5fef28a66643",
+  stickyNotes: {
+    id: "1542626991-cbc4e32524cc",
     crop: "w=1200&h=750",
-    alt: "A wooden desk with an open laptop, a notebook and a cup of coffee",
+    alt: "A man adding a note to a wall covered in handwritten sticky notes",
   },
 
   // A second, different photograph for each service page, so clicking a card
@@ -308,10 +308,10 @@ const PHOTOS = {
     crop: "w=1200&h=800",
     alt: "Hands sketching a diagram in a notebook beside two open laptops",
   },
-  codeBlur: {
-    id: "1555949963-ff9fe0c870eb",
+  pairing: {
+    id: "1527689368864-3a821dbccc34",
     crop: "w=1200&h=800",
-    alt: "Coloured code on a screen, photographed close and out of focus",
+    alt: "Two people sharing one laptop at a table by a window, seen from behind",
   },
   meeting: {
     id: "1521737604893-d14cc237f11d",
@@ -320,7 +320,9 @@ const PHOTOS = {
   },
 
   // Article leads. All landscape: a 16:10 card cannot hold a vertical frame
-  // without cutting the top off whatever is in it.
+  // without cutting the top off whatever is in it. And all of DIFFERENT things —
+  // a review counted ten of thirteen photographs containing a laptop, which
+  // reads as one stock pack however carefully each one was chosen.
   tableNotes: {
     id: "1517048676732-d65bc937f952",
     crop: "w=1200&h=800",
@@ -331,15 +333,15 @@ const PHOTOS = {
     crop: "w=1200&h=800",
     alt: "A shared desk photographed from above, covered with laptops, notebooks and coffee cups",
   },
-  pointingAtScreen: {
-    id: "1516321318423-f06f85e504b3",
+  whiteboard: {
+    id: "1607703703674-df96af81dffa",
     crop: "w=1200&h=800",
-    alt: "One person pointing at something on a laptop screen while another types",
+    alt: "A hand writing the word AUDIENCE on a whiteboard",
   },
-  conference: {
-    id: "1542744173-8e7e53415bb0",
+  archive: {
+    id: "1762627105132-f6ed848a23bf",
     crop: "w=1200&h=800",
-    alt: "A full conference room, people at laptops around a long table",
+    alt: "Rows of white archive boxes on shelves either side of a wooden door",
   },
 
   // Both portraits in the same register: plain backdrop, direct gaze. Two staff
@@ -423,8 +425,8 @@ const SERVICES = [
   {
     name: "Web development",
     photo: "codeScreen",
-    figure: "codeBlur",
-    caption: "Pairing on the front end, with the performance budget on screen.",
+    figure: "pairing",
+    caption: "Pairing on the front end, where most of the performance work happens.",
     teaser: "Fast sites that editors can change without opening a ticket.",
     intro: "Front ends that load quickly, meet WCAG, and hand real control to the people who write the words.",
     body: [
@@ -438,7 +440,7 @@ const SERVICES = [
   },
   {
     name: "Content operations",
-    photo: "editorialDesk",
+    photo: "stickyNotes",
     figure: "meeting",
     caption: "A modelling workshop with the people who publish every day.",
     teaser: "Getting an editorial team from three-week deploys to publishing themselves.",
@@ -478,7 +480,7 @@ const ARTICLES = [
     intro: "You can ship a perfect component library and still fail an audit on link text.",
     author: "Jonas Berg",
     date: "2026-03-11T09:00:00.000Z",
-    photo: "pointingAtScreen",
+    photo: "whiteboard",
     body: [
       "Most accessibility findings we see on editorial sites are not code. They are twelve links that all say read more, headings chosen for their size, and images with a filename as the alt text.",
       "The fix is partly training and partly making the right thing the easy thing: a link field that asks for its text, an image field that will not save without a description.",
@@ -489,7 +491,7 @@ const ARTICLES = [
     intro: "What we learned moving a twenty-year archive one content type at a time.",
     author: "Jonas Berg",
     date: "2026-04-22T09:00:00.000Z",
-    photo: "conference",
+    photo: "archive",
     body: [
       "The instinct is a big-bang migration over a weekend. The alternative is duller and much safer: migrate one type at a time, run both systems behind the same URLs, and move traffic as each type finishes.",
       "It took eleven weeks instead of one weekend, and nothing was ever down.",
@@ -757,7 +759,7 @@ async function main() {
 
   const about = await page("SectionPage", "About", {
     heading: "About Nordlys Studio",
-    intro: "Four people in Oslo who build content-led sites and then teach the team to run them.",
+    intro: "Two people in Oslo who build content-led sites and then teach the team to run them.",
     body: rt(
       "We started in 2019, after too many projects where the site launched beautifully and then froze, because changing a sentence needed a developer.",
       "An honest note: Nordlys Studio does not exist. Every page on this site is demo content for the Paperboy CMS, created through its Management API by scripts/demo-content.mjs when this stack first started — which makes that script a decent worked example if you want to automate the CMS yourself.",
@@ -771,6 +773,15 @@ async function main() {
         lastName: "Solberg",
         workTitle: "Principal consultant",
         email: "ingrid@nordlys.example",
+      }),
+      // Both of them. One card under "two people in Oslo" left the other half of
+      // the sentence unaccounted for.
+      b("PersonBlock", {
+        image: photo.jonas,
+        firstName: "Jonas",
+        lastName: "Berg",
+        workTitle: "Front-end lead",
+        email: "jonas@nordlys.example",
       }),
       b("ImageBlock", {
         image: photo.studioDesk,

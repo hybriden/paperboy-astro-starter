@@ -2,9 +2,10 @@
 /**
  * ImageBlock — an image with an optional caption.
  *
- * Width and height are emitted so the browser reserves the space before the
- * image arrives (no layout shift); the srcset lets the CMS's variant pipeline
- * serve a size that fits the slot instead of the original upload.
+ * The space is reserved by the `aspect-ratio` on `.pb-figure img`, NOT by width
+ * and height attributes: Paperboy stores no dimensions for an asset, so a
+ * frontend has nothing true to put in them. The srcset lets the CMS's variant
+ * pipeline serve a size that fits the slot instead of the original upload.
  */
 import { mediaSrcset, mediaUrl } from "@paperboycms/client";
 import { pbField } from "../../lib/editing";

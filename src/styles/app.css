@@ -202,6 +202,14 @@ a {
   color: var(--pb-on-accent);
 }
 
+/* On a lime card the lime dot is invisible — same token, so 1:1 against its own
+   background — and "Read more" showed a bare arrow glyph beside cards that
+   showed a filled circle. Invert it there. */
+.pb-card--accent .pb-arrow-link__dot {
+  background: var(--pb-panel-dark);
+  color: var(--pb-accent);
+}
+
 /* ------------------------------------------------------------------ cards --- */
 
 .pb-card {
@@ -311,6 +319,13 @@ a {
  * and has nothing else to reserve with. The ratio is also a cap: at 3:2 a
  * full-width lead photograph ran 779px tall on a desktop and filled the whole
  * viewport before you reached a word of the article. */
+/* A PersonBlock is one small card, and every block is rendered as a full-width
+   section. Left alone, the card was 1168px wide with its content ending at
+   493 — more empty card than card. */
+.pb-block--personblock .person {
+  max-width: 34rem;
+}
+
 .pb-figure img {
   width: 100%;
   aspect-ratio: 16 / 9;

@@ -49,8 +49,6 @@ const secondary = link(data, "secondaryLink");
         srcset={mediaSrcset(image.url, [480, 960, 1440])}
         sizes="(max-width: 900px) 100vw, 560px"
         alt={image.alt ?? ""}
-        width="560"
-        height="420"
         fetchpriority="high"
         decoding="async"
       />
@@ -86,9 +84,16 @@ const secondary = link(data, "secondaryLink");
     flex-wrap: wrap;
     gap: var(--pb-gap);
   }
+  /* The ratio reserves the space, and it has to be CSS rather than width/height
+     attributes: those are a claim about a photograph an editor picks in the CMS.
+     Paperboy stores no dimensions for an asset, so the old width="560"
+     height="420" was only ever right because the demo seed happens to fetch a
+     4:3 hero — swapping in a 16:9 one collapsed the image by 106px after paint,
+     on the one element carrying fetchpriority="high". */
   .hero__media img {
     width: 100%;
-    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
     border-radius: var(--pb-radius-card);
   }
 </style>

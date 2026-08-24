@@ -29,6 +29,19 @@ const current = Math.min(Math.max(1, page), pages);
 const shown = items.slice((current - 1) * pageSize, current * pageSize);
 
 const pageHref = (n: number) => (n <= 1 ? basePath || "/" : `${basePath}?page=${n}`);
+
+/** One decision about what a card's picture is, so the card and its tone agree. */
+const teaserImage = (item: (typeof shown)[number]) =>
+  firstImg(item.data as Data, ["teaserImage", "mainImage", "image"]);
+
+/**
+ * Cards alternate white and grey — but a card with no photograph gets a FILLED
+ * tone instead. Not every article has a picture, and on a white card the missing
+ * one left 246px of void above "Read more": half the card, reading as a failed
+ * image. A colour block is the design's own language and reads as a decision.
+ */
+const toneFor = (item: (typeof shown)[number], i: number) =>
+  teaserImage(item) ? (i % 2 === 0 ? "white" : "grey") : i % 2 === 0 ? "accent" : "dark";
 ---
 
 <div class="pb-container list">
@@ -46,8 +59,8 @@ const pageHref = (n: number) => (n <= 1 ? basePath || "/" : `${basePath}?page=${
           href={item.urlPath ?? null}
           title={firstStr(item.data as Data, ["teaserTitle", "heading", "title"]) || item.name}
           text={firstStr(item.data as Data, ["teaserText", "intro", "summary"])}
-          image={firstImg(item.data as Data, ["teaserImage", "mainImage", "image"])}
-          tone={i % 2 === 0 ? "white" : "grey"}
+          image={teaserImage(item)}
+          tone={toneFor(item, i)}
         />
       ))}
     </div>
