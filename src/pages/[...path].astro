@@ -1,0 +1,51 @@
+---
+/**
+ * Every CMS page, by its own URL.
+ *
+ * Paperboy computes each page's `urlPath` from the content tree, so ONE route
+ * renders the whole site: no per-type route files, no rebuild when an editor
+ * adds a page or moves a branch. `/` falls through to the configured start page.
+ *
+ * `populate: 2` resolves references and shared blocks two levels deep — enough
+ * for a page's blocks and the documents those blocks point at (a Form, a teaser).
+ */
+import { cms, isPreview } from "../lib/cms";
+import Blocks from "../components/Blocks.astro";
+import Layout from "../layouts/Base.astro";
+import { contentAreas, pbAreaAttrs } from "@paperboycms/client";
+
+export const prerender = false;
+
+const env = (Astro.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+const preview = await isPreview(Astro.url, env);
+const client = cms(env, preview);
+
+const path = `/${(Astro.params.path ?? "").replace(/^\/+|\/+$/g, "")}`;
+const page = path === "/" ? await client.startPage({ populate: 2 }) : await client.getByPath(path, { populate: 2 });
+
+if (!page) return Astro.rewrite("/404");
+
+const data = page.data ?? {};
+const areas = contentAreas(data, page.fieldTypes);
+// Fields that are not content areas, in declaration order — the page's own copy.
+const own = Object.entries(data).filter(([field]) => page.fieldTypes?.[field] !== "contentArea");
+const fieldAttr = (name: string) => (preview ? { "data-pb-field": name } : {});
+---
+
+<Layout seo={page.seo} preview={preview}>
+  <article>
+    {own.map(([name, value]) =>
+      typeof value === "string" && value
+        ? (/title|head(ing)?$/i.test(name)
+            ? <h1 {...fieldAttr(name)}>{value}</h1>
+            : <p {...fieldAttr(name)}>{value}</p>)
+        : null,
+    )}
+
+    {areas.map((area) => (
+      <div class="pb-area" {...pbAreaAttrs(area.field, preview)}>
+        <Blocks blocks={area.blocks} preview={preview} />
+      </div>
+    ))}
+  </article>
+</Layout>

@@ -1,0 +1,33 @@
+---
+/**
+ * On-page editing bridge — rendered only in preview.
+ *
+ * The behaviour (click-to-edit, drag-and-drop blocks, rect streaming, live
+ * patching, scroll persistence) and the whole `paperboy:*` message protocol live
+ * in @paperboycms/preview, so this app, the CMS admin and every other frontend
+ * share ONE contract instead of hand-rolled copies that drift.
+ *
+ * Astro bundles a component's <script> into the page even when the component
+ * isn't rendered, so activation is gated on the server-rendered #pb-edit-root
+ * marker (present only in preview). On the public site the bridge never
+ * initialises: no listeners, no injected styles.
+ */
+---
+<div id="pb-edit-root" hidden></div>
+
+<script>
+  import { initPreviewBridge } from "@paperboycms/preview";
+  if (document.getElementById("pb-edit-root")) initPreviewBridge();
+</script>
+
+<style is:global>
+  /* An empty editable field renders no box, so there is nothing to hover or
+     click in on-page editing. Give it a target. Scoped to body.pb-editing,
+     which the bridge sets only in preview, so the public site is untouched. */
+  body.pb-editing [data-pb-field]:empty { min-height: 1.4rem; min-width: 6rem; }
+  body.pb-editing [data-pb-field]:empty::after {
+    content: "empty — click to edit";
+    color: #9ca3af;
+    font: italic 0.78rem/1.4 system-ui, sans-serif;
+  }
+</style>

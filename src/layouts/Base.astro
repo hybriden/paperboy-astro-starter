@@ -1,0 +1,94 @@
+---
+/**
+ * Page shell. Deliberately unstyled beyond the bare minimum — this is a starter,
+ * and your design system belongs here rather than being deleted out of it.
+ *
+ * The head is assembled from Paperboy's computed `seo` block, which every PAGE
+ * item carries: meta, canonical, robots, OpenGraph, Twitter, JSON-LD and a
+ * breadcrumb trail, derived from the `seoRole` / `schemaProp` your content types
+ * declare. It is computed AFTER field visibility is applied, so a private field
+ * can never leak into a meta tag.
+ *
+ * The type comes from the client package rather than being re-declared here.
+ * Three details are easy to get wrong by hand and all three fail SILENTLY:
+ *   canonicalPath  a PATH, so an origin has to be prefixed
+ *   og.image       an OBJECT {url, alt}, not a string — a naive loop emits
+ *                  content="[object Object]" and no scraper ever complains
+ *   breadcrumb     a plain array of {name, urlPath}; real BreadcrumbList JSON-LD
+ *                  has to be BUILT from it, not stringified as-is
+ */
+import type { DeliverySeo } from "@paperboycms/client";
+import PreviewBridge from "../components/PreviewBridge.astro";
+
+interface Props {
+  seo?: DeliverySeo | null;
+  preview?: boolean;
+  /** Fallback title for routes with no CMS item behind them (404, errors). */
+  title?: string;
+}
+const { seo, preview = false, title } = Astro.props;
+
+// Prefer the configured `site` in astro.config.mjs (stable behind proxies and
+// CDNs); fall back to the request origin so the starter works with no config.
+const origin = Astro.site?.origin ?? Astro.url.origin;
+const abs = (path: string) => new URL(path, origin).href;
+const canonical = seo?.canonicalPath ? abs(seo.canonicalPath) : null;
+
+const og = seo?.og;
+const jsonLd = seo?.jsonLd ? JSON.stringify(seo.jsonLd) : null;
+
+// A BreadcrumbList a search engine will actually read: positions from 1, and
+// only the steps that are addressable (an unpublished ancestor has urlPath null).
+const crumbs = (seo?.breadcrumb ?? []).filter((c) => c.urlPath);
+const breadcrumbLd =
+  crumbs.length > 1
+    ? JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: crumbs.map((c, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: c.name,
+          item: abs(c.urlPath as string),
+        })),
+      })
+    : null;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{seo?.title ?? title ?? "Paperboy site"}</title>
+    {seo?.description && <meta name="description" content={seo.description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+
+    {/* Preview is always noindex. The CMS enforces it server-side too — this is
+        belt and braces, because a draft reaching an index is unrecoverable. */}
+    <meta name="robots" content={preview ? "noindex, nofollow" : (seo?.robots ?? "index, follow")} />
+
+    {og && (
+      <>
+        <meta property="og:title" content={og.title} />
+        {og.description && <meta property="og:description" content={og.description} />}
+        <meta property="og:type" content={og.type} />
+        {og.siteName && <meta property="og:site_name" content={og.siteName} />}
+        {og.image && <meta property="og:image" content={abs(og.image.url)} />}
+        {og.image?.alt && <meta property="og:image:alt" content={og.image.alt} />}
+        {canonical && <meta property="og:url" content={canonical} />}
+      </>
+    )}
+
+    {seo?.twitter?.card && <meta name="twitter:card" content={seo.twitter.card} />}
+
+    {jsonLd && <script type="application/ld+json" set:html={jsonLd} />}
+    {breadcrumbLd && <script type="application/ld+json" set:html={breadcrumbLd} />}
+  </head>
+  <body>
+    <main>
+      <slot />
+    </main>
+    {preview && <PreviewBridge />}
+  </body>
+</html>

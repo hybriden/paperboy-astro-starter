@@ -1,0 +1,28 @@
+{
+  "name": "paperboy-astro-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Astro starter for Paperboy CMS \u2014 pages, blocks, on-page editing, forms and generated public files, wired to the Delivery API.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "test": "vitest run",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.4",
+    "@paperboycms/client": "^0.3.0",
+    "@paperboycms/preview": "^0.3.2",
+    "astro": "^7.2.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.8"
+  }
+}

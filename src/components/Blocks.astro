@@ -1,0 +1,102 @@
+---
+/**
+ * Generic content-area renderer.
+ *
+ * There is no per-block-type template here on purpose. Paperboy delivers each
+ * item's `fieldTypes` — the declared type of every public field — so a block can
+ * be rendered from its SCHEMA rather than by sniffing values. That means a
+ * content type you add in the admin tomorrow renders today, and an empty
+ * richtext field stays richtext instead of collapsing to a string.
+ *
+ * When you want a real design, replace the generic branch with a switch on
+ * `b.blockType` and keep this as the fallback so new types never render blank.
+ *
+ * The `data-pb-*` attributes are the on-page editing contract: they let the
+ * admin outline a field in the preview and route a click to the right form
+ * input. They are emitted only in preview, so public pages stay marker-free.
+ */
+import { blockData, isRichTextDoc, mediaSrcset, mediaUrl, renderKind, renderRichText, type AreaBlock } from "@paperboycms/client";
+import PaperboyForm from "./PaperboyForm.astro";
+
+interface Props {
+  blocks: AreaBlock[];
+  preview?: boolean;
+}
+const { blocks, preview = false } = Astro.props;
+
+const isImage = (v: unknown): v is { url: string; alt?: string } =>
+  !!v && typeof v === "object" && typeof (v as { url?: unknown }).url === "string";
+
+/** Editing markers, only in preview. */
+const fieldAttr = (name: string) => (preview ? { "data-pb-field": name } : {});
+---
+
+{blocks.map((b, i) => {
+  const fields = blockData(b);
+  const types = (b.shared ? b.content?.fieldTypes : b.fieldTypes) ?? {};
+
+  // A FORM is a shared block whose delivered document carries a `form` spec. It
+  // needs real inputs, so it cannot come out of the field loop below.
+  if (b.shared && b.content?.type === "Form" && b.content.form && b.content.documentId) {
+    return (
+      <section class="pb-block pb-block--form" data-pb-block-index={preview ? i : undefined} data-pb-block-type={b.blockType}>
+        <PaperboyForm spec={b.content.form} formId={b.content.documentId} />
+      </section>
+    );
+  }
+
+  // A PAGE dropped into a content area is delivered with kind "page" and a
+  // urlPath — it renders as a teaser card linking to the page it teases.
+  if (b.shared && b.content?.kind === "page") {
+    const href = b.content.urlPath;
+    if (!href) return null;
+    const title = (typeof fields.title === "string" && fields.title) || b.content.name || "";
+    return (
+      <a class="pb-teaser" href={href} data-pb-block-index={preview ? i : undefined} data-pb-block-type={b.blockType}>
+        <strong>{title}</strong>
+      </a>
+    );
+  }
+
+  return (
+    <section
+      class={`pb-block pb-block--${(b.blockType ?? "block").toLowerCase()} pb-display--${b.display ?? "automatic"}`}
+      data-pb-block-index={preview ? i : undefined}
+      data-pb-block-type={b.blockType}
+    >
+      {Object.entries(fields).map(([name, value]) => {
+        switch (renderKind(types[name])) {
+          case "richtext":
+            return isRichTextDoc(value) ? <div {...fieldAttr(name)} set:html={renderRichText(value)} /> : null;
+          case "markdown":
+            // Bring your own markdown renderer (marked, markdown-it, remark) and
+            // sanitize its output. Shown as text so the starter has no opinion.
+            return <p {...fieldAttr(name)}>{String(value ?? "")}</p>;
+          case "text": {
+            const text = String(value ?? "");
+            // Heading-ish names get heading weight; everything else is a paragraph.
+            return /title|head(ing)?$/i.test(name)
+              ? <h2 {...fieldAttr(name)}>{text}</h2>
+              : <p {...fieldAttr(name)}>{text}</p>;
+          }
+          default:
+            // Images arrive as an OBJECT ({url, alt, …}), never a bare string.
+            if (isImage(value)) {
+              return (
+                <img
+                  {...fieldAttr(name)}
+                  src={mediaUrl(value.url, { w: 1024, format: "webp" })}
+                  srcset={mediaSrcset(value.url)}
+                  sizes="(max-width: 768px) 100vw, 1024px"
+                  alt={value.alt ?? ""}
+                  loading="lazy"
+                  decoding="async"
+                />
+              );
+            }
+            return null;
+        }
+      })}
+    </section>
+  );
+})}

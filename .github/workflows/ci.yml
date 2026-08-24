@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      # The build must pass with NO CMS reachable: a starter that only compiles
+      # against a live instance is a starter nobody can fork.
+      - run: npm run build
+        env:
+          PAPERBOY_API_URL: https://cms.example.com
+          PAPERBOY_PUBLIC_KEY: pk_live_ci
+          PAPERBOY_PREVIEW_KEY: prv_ci
+          PREVIEW_SECRET: ci-secret

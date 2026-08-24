@@ -1,0 +1,108 @@
+---
+/**
+ * A Paperboy form, rendered from the spec the Delivery API attaches to a Form
+ * block. Delivery sends a SCHEMA, never markup, so the styling is entirely
+ * yours — labels, requiredness, lengths, options and error copy all come from
+ * the CMS and change without a deploy.
+ *
+ * `fieldAttrs` builds accessible attributes from the spec (label association,
+ * `aria-describedby` for help and error text, programmatic `required`), and
+ * `honeypotAttrs` builds the hidden anti-spam field — hidden from sight AND from
+ * assistive tech, and never focusable.
+ *
+ * The submit goes to this app's own /api/submit, which forwards to the CMS. That
+ * server hop exists so the CMS validates against the CURRENT published form
+ * definition: the rules the visitor was shown are the rules actually enforced.
+ */
+import { fieldAttrs, honeypotAttrs, type FormSpec } from "@paperboycms/client";
+
+interface Props {
+  spec: FormSpec;
+  /** The Form's documentId — submissions are posted against it. */
+  formId: string;
+}
+const { spec, formId } = Astro.props;
+const honeypot = honeypotAttrs(spec);
+---
+
+<form class="pb-form" method="POST" action="/api/submit" data-pb-form>
+  <input type="hidden" name="pb_form_id" value={formId} />
+  <input type="hidden" name="pb_honeypot_field" value={spec.honeypotField} />
+  <input type="hidden" name="pb_elapsed_ms" value="0" data-pb-elapsed />
+
+  {spec.title && <h2>{spec.title}</h2>}
+
+  {spec.fields.map((field) => {
+    // Static text collects no answer — it is copy between questions.
+    if (field.kind === "static") {
+      return field.heading ? <h3 class="pb-form__heading">{field.heading}</h3> : null;
+    }
+    const a = fieldAttrs(field, { idPrefix: `pb-${formId}` });
+    return (
+      <div class="pb-form__field">
+        <label for={a.id}>
+          {field.label}
+          {field.required && <span aria-hidden="true"> *</span>}
+        </label>
+
+        {field.kind === "textarea" ? (
+          <textarea {...a.input} />
+        ) : field.kind === "select" ? (
+          <select id={a.id} name={a.name} required={a.required || undefined} aria-describedby={a.describedBy}>
+            <option value="">Choose…</option>
+            {(field.choices ?? []).map((c) => <option value={c.value}>{c.label}</option>)}
+          </select>
+        ) : field.kind === "radio" ? (
+          <fieldset class="pb-form__choices">
+            <legend class="pb-visually-hidden">{field.label}</legend>
+            {(field.choices ?? []).map((c, i) => (
+              <label class="pb-form__choice" for={`${a.id}-${i}`}>
+                <input type="radio" id={`${a.id}-${i}`} name={a.name} value={c.value} required={a.required || undefined} />
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </fieldset>
+        ) : (
+          <input {...a.input} />
+        )}
+
+        {field.helpText && <p class="pb-form__help" id={a.helpId}>{field.helpText}</p>}
+      </div>
+    );
+  })}
+
+  {/* Invisible to people, irresistible to bots. */}
+  <div style={honeypot.wrapperStyle}>
+    <label for={`pb-${formId}-hp`}>Leave this field empty</label>
+    <input {...honeypot.input} id={`pb-${formId}-hp`} />
+  </div>
+
+  <button type="submit">{spec.submitLabel || "Send"}</button>
+</form>
+
+<script>
+  // How long the visitor actually had the form open. The CMS discards
+  // submissions completed faster than a human could type, and a form that
+  // reports nothing loses that (invisible, accessible) protection.
+  document.querySelectorAll<HTMLFormElement>("form[data-pb-form]").forEach((form) => {
+    const opened = Date.now();
+    form.addEventListener("submit", () => {
+      const field = form.querySelector<HTMLInputElement>("input[data-pb-elapsed]");
+      if (field) field.value = String(Date.now() - opened);
+    });
+  });
+</script>
+
+<style>
+  .pb-form__field { margin-block: 1rem; }
+  .pb-form__field label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+  .pb-form__field input:not([type="checkbox"]):not([type="radio"]),
+  .pb-form__field textarea,
+  .pb-form__field select { width: 100%; max-width: 32rem; padding: 0.5rem 0.6rem; }
+  .pb-form__help { margin: 0.35rem 0 0; font-size: 0.85rem; opacity: 0.7; }
+  .pb-form__choices { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  .pb-visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+</style>
