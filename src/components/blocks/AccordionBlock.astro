@@ -1,0 +1,42 @@
+---
+/**
+ * AccordionBlock — heading, intro text, and a list of AccordionItemBlock parts.
+ *
+ * This is the design's numbered "process" section. The numbers are positional,
+ * so they come from the render loop rather than from a field the editor has to
+ * keep in sync when they reorder rows.
+ */
+import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import SectionHeading from "../SectionHeading.astro";
+import AccordionItemBlock from "./AccordionItemBlock.astro";
+import { pbField } from "../../lib/editing";
+import { area, rich, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const text = rich(data, "text");
+const items: AreaBlock[] = area(data, "items");
+---
+
+<div>
+  <SectionHeading heading={heading} preview={preview} />
+  {text && <div class="accordion__intro pb-prose" {...pbField("text", preview)} set:html={text} />}
+
+  <div class="pb-accordion" {...pbAreaAttrs("items", preview)}>
+    {items.map((item, i) => (
+      <AccordionItemBlock data={blockData(item)} preview={preview} number={i + 1} />
+    ))}
+  </div>
+</div>
+
+<style>
+  .accordion__intro {
+    max-width: 60ch;
+    margin-bottom: var(--pb-gap-lg);
+  }
+</style>

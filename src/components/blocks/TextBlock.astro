@@ -1,0 +1,28 @@
+---
+/**
+ * TextBlock — a single richtext body.
+ *
+ * Constrained to a readable measure rather than the full container width: a
+ * paragraph running 1200px wide is hard to read, whatever the design does with
+ * cards.
+ */
+import { pbField } from "../../lib/editing";
+import { rich, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+const body = rich(data, "body");
+---
+
+{body && (
+  <div class="text-block pb-prose" {...pbField("body", preview)} set:html={body} />
+)}
+
+<style>
+  .text-block {
+    max-width: 68ch;
+  }
+</style>

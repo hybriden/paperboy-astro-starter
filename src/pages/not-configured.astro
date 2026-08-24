@@ -1,0 +1,18 @@
+---
+/**
+ * The "wire me up" page, reachable as a route so the catch-all can rewrite to
+ * it (a rewrite needs a real route, and this keeps the 503 status intact).
+ */
+import NotConfigured from "../components/NotConfigured.astro";
+
+export const prerender = false;
+
+const env = (Astro.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+
+// 503, not 200: an unconfigured site is not a working site, and a health check
+// or an uptime monitor should be able to tell the difference.
+Astro.response.status = 503;
+Astro.response.headers.set("cache-control", "no-store");
+---
+
+<NotConfigured env={env} />

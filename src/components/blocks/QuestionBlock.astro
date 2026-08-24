@@ -1,0 +1,41 @@
+---
+/**
+ * QuestionBlock — one question and its answer.
+ *
+ * Same <details> mechanics as an accordion row, without the number: an FAQ is a
+ * set, not a sequence, and numbering it would imply an order that isn't there.
+ *
+ * Paperboy computes FAQPage JSON-LD from the page's own schema roles, so there
+ * is no structured data to hand-write here.
+ */
+import { pbField } from "../../lib/editing";
+import { rich, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const question = str(data, "question");
+const answer = rich(data, "answer");
+---
+
+{(question || answer) && (
+  <details class="pb-accordion__item" open={preview}>
+    <summary class="pb-accordion__summary question__summary">
+      <span {...pbField("question", preview)}>{question}</span>
+      <span class="pb-accordion__toggle" aria-hidden="true"></span>
+    </summary>
+    {answer && (
+      <div class="pb-accordion__body pb-prose" {...pbField("answer", preview)} set:html={answer} />
+    )}
+  </details>
+)}
+
+<style>
+  /* A question is a sentence, not a section title — dial the size down. */
+  .question__summary {
+    font-size: var(--pb-text-h4);
+  }
+</style>

@@ -1,0 +1,136 @@
+---
+/**
+ * VideoBlock — heading, embed URL, optional poster.
+ *
+ * The embed URL is normalised (YouTube/Vimeo watch links become embed links)
+ * and anything unrecognised renders as a plain link instead of an iframe: an
+ * editor pastes a page URL far more often than an embed URL, and pointing an
+ * iframe at an arbitrary origin is not something a template should do quietly.
+ *
+ * The video loads only when clicked. A third-party iframe on every page view is
+ * both slow and a tracking surface the visitor did not ask for; the poster keeps
+ * the layout and the click starts the real player.
+ */
+import { mediaSrcset, mediaUrl } from "@paperboycms/client";
+import { pbField } from "../../lib/editing";
+import { embedUrl, img, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const raw = str(data, "embedUrl");
+const src = embedUrl(raw);
+const poster = img(data, "poster");
+const title = heading || "Embedded video";
+---
+
+<div class="video">
+  {heading && (
+    <h2 class="video__title">
+      <span class="pb-highlight" {...pbField("heading", preview)}>{heading}</span>
+    </h2>
+  )}
+
+  {src ? (
+    <div class="video__frame" data-video-src={src}>
+      {poster ? (
+        <button class="video__poster" type="button" aria-label={`Play: ${title}`}>
+          <img
+            src={mediaUrl(poster.url, { w: 1240, format: "webp" })}
+            srcset={mediaSrcset(poster.url, [640, 1240, 1920])}
+            sizes="(max-width: 1240px) 100vw, 1240px"
+            alt={poster.alt ?? ""}
+            loading="lazy"
+            decoding="async"
+          />
+          <span class="video__play" aria-hidden="true">&#9654;</span>
+        </button>
+      ) : (
+        <iframe
+          src={src}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+          allowfullscreen
+        />
+      )}
+    </div>
+  ) : (
+    raw && (
+      <p>
+        {/* Not an embeddable URL — link out rather than framing an unknown origin. */}
+        <a class="pb-arrow-link" href={raw}>
+          <span class="pb-arrow-link__dot" aria-hidden="true">&#8599;</span>
+          <span>Watch the video</span>
+        </a>
+      </p>
+    )
+  )}
+</div>
+
+<style>
+  .video__title { margin-bottom: var(--pb-gap); }
+  .video__frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border: var(--pb-border-width) solid var(--pb-line);
+    border-radius: var(--pb-radius-card);
+    overflow: hidden;
+    background: var(--pb-dark);
+  }
+  .video__frame :is(iframe, img, button) {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .video__poster {
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    display: block;
+  }
+  .video__poster img {
+    object-fit: cover;
+  }
+  .video__play {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 5rem;
+    height: 5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: var(--pb-border-width) solid var(--pb-line);
+    background: var(--pb-accent);
+    color: var(--pb-on-accent);
+    font-size: 1.5rem;
+  }
+</style>
+
+<script>
+  // Click-to-load: swap the poster for the real iframe. Bound per frame, and
+  // idempotent so Astro's client-side navigation cannot double-bind it.
+  const bind = () => {
+    document.querySelectorAll<HTMLElement>(".video__frame[data-video-src]").forEach((frame) => {
+      if (frame.dataset.bound === "1") return;
+      frame.dataset.bound = "1";
+      frame.querySelector("button")?.addEventListener("click", () => {
+        const src = frame.dataset.videoSrc;
+        if (!src) return;
+        const iframe = document.createElement("iframe");
+        iframe.src = `${src}${src.includes("?") ? "&" : "?"}autoplay=1`;
+        iframe.title = frame.getAttribute("data-title") ?? "Video";
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture";
+        iframe.allowFullscreen = true;
+        frame.replaceChildren(iframe);
+      });
+    });
+  };
+  bind();
+  document.addEventListener("astro:page-load", bind);
+</script>

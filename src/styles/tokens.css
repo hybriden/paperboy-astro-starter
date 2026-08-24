@@ -1,0 +1,79 @@
+/*
+ * Design tokens — the "Positivus" look.
+ *
+ * Adapted from the free Positivus landing-page design by Olga Averchenko
+ * (Figma Community, CC-BY-4.0-style community licence — check the file's own
+ * terms before shipping commercially). Values below were taken from the design's
+ * published palette and a pixel-perfect open-source build of it, not eyeballed:
+ * an acid green on near-black, one grey, and the signature card — 1px black
+ * border with a hard 5px drop, no blur.
+ *
+ * Everything visual in this starter reads from these variables. Rebrand the
+ * whole site by editing this file; you should not need to touch a component.
+ */
+:root {
+  /* Brand */
+  --pb-green: #b9ff66;
+  --pb-green-hover: #cfff7f;
+  --pb-green-active: #a8e55a;
+  --pb-dark: #191a23;
+  --pb-dark-soft: #292a32;
+  --pb-grey: #f3f3f3;
+  --pb-white: #ffffff;
+
+  /* Semantic roles — components use these, never the brand names above */
+  --pb-bg: var(--pb-white);
+  --pb-fg: var(--pb-dark);
+  --pb-muted: #4a4b57;
+  --pb-line: var(--pb-dark);
+  --pb-accent: var(--pb-green);
+  --pb-on-accent: var(--pb-dark);
+  --pb-panel: var(--pb-grey);
+  --pb-panel-fg: var(--pb-dark);
+  --pb-panel-dark: var(--pb-dark);
+  --pb-panel-dark-fg: var(--pb-white);
+  --pb-danger: #b3261e;
+
+  /* Shape. The 45px card radius is the design's signature; it needs to come
+     down on small screens or a 320px-wide card reads as a pill. */
+  --pb-radius-card: 45px;
+  --pb-radius-control: 14px;
+  --pb-radius-chip: 7px;
+  --pb-border-width: 1px;
+  --pb-shadow: 0 5px 0 0 var(--pb-line);
+  --pb-shadow-press: 0 2px 0 0 var(--pb-line);
+
+  /* Type. Space Grotesk with a real fallback stack, so a blocked font request
+     degrades to a similar geometric sans instead of Times. */
+  --pb-font: "Space Grotesk", ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --pb-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* Fluid scale: the design's desktop sizes are the upper bound. */
+  --pb-text-hero: clamp(2.5rem, 1.4rem + 4.4vw, 3.75rem);   /* 60px */
+  --pb-text-h2: clamp(2rem, 1.4rem + 2.4vw, 2.5rem);         /* 40px */
+  --pb-text-h3: clamp(1.5rem, 1.2rem + 1.2vw, 1.875rem);     /* 30px */
+  --pb-text-h4: 1.25rem;                                     /* 20px */
+  --pb-text-lead: 1.25rem;                                   /* 20px */
+  --pb-text-body: 1.125rem;                                  /* 18px */
+  --pb-text-small: 1rem;                                     /* 16px */
+  --pb-leading-tight: 1.1;
+  --pb-leading: 1.5;
+
+  /* Rhythm */
+  --pb-gap: 1.25rem;
+  --pb-gap-lg: 2.5rem;
+  --pb-section-y: clamp(3rem, 1.5rem + 6vw, 6.875rem);
+  --pb-container: 1240px;
+  --pb-gutter: clamp(1rem, 0.5rem + 2vw, 2.25rem);
+  --pb-card-pad: clamp(1.5rem, 1rem + 2vw, 3.125rem);
+}
+
+@media (max-width: 640px) {
+  :root {
+    --pb-radius-card: 28px;
+  }
+}
+
+/* Positivus is a light design with deliberate dark panels — it does not have a
+   dark mode, so rather than inventing one we keep the palette fixed and make
+   sure it is painted explicitly (never inheriting the host's colours). */

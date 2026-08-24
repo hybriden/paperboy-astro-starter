@@ -1,0 +1,90 @@
+---
+/**
+ * ArticleListPage — lists its children of a chosen type.
+ *
+ * Behaviour comes from the content model, never from the URL: the editor picks
+ * the listed type and the page size in the admin. The ORDER comes from the
+ * container's own child-sort rule (set in the admin tree), which is why the
+ * fetch does not force a sort — overriding it here would silently ignore what
+ * the editor configured.
+ *
+ * Items are fetched by the route and passed in, so this template stays a pure
+ * render and can be tested without a CMS.
+ */
+import TeaserCard from "../components/TeaserCard.astro";
+import { pbField } from "../lib/editing";
+import { firstImg, firstStr, num, str, type Data } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, items = [], preview = false, page = 1, basePath = "" } = Astro.props;
+
+const heading = str(data, "heading");
+const intro = str(data, "intro");
+const pageSize = Math.max(1, num(data, "pageSize") ?? 12);
+
+const total = items.length;
+const pages = Math.max(1, Math.ceil(total / pageSize));
+const current = Math.min(Math.max(1, page), pages);
+const shown = items.slice((current - 1) * pageSize, current * pageSize);
+
+const pageHref = (n: number) => (n <= 1 ? basePath || "/" : `${basePath}?page=${n}`);
+---
+
+<div class="pb-container list">
+  <header class="list__head">
+    <h1>
+      <span class="pb-highlight" {...pbField("heading", preview)}>{heading}</span>
+    </h1>
+    {intro && <p class="list__intro" {...pbField("intro", preview)}>{intro}</p>}
+  </header>
+
+  {shown.length > 0 ? (
+    <div class="pb-grid">
+      {shown.map((item, i) => (
+        <TeaserCard
+          href={item.urlPath ?? null}
+          title={firstStr(item.data as Data, ["teaserTitle", "heading", "title"]) || item.name}
+          text={firstStr(item.data as Data, ["teaserText", "intro", "summary"])}
+          image={firstImg(item.data as Data, ["teaserImage", "mainImage", "image"])}
+          tone={i % 2 === 0 ? "white" : "grey"}
+        />
+      ))}
+    </div>
+  ) : (
+    <p class="list__empty">Nothing published here yet.</p>
+  )}
+
+  {pages > 1 && (
+    <nav class="list__pager" aria-label="Pagination">
+      {current > 1 && <a class="pb-btn pb-btn--ghost" href={pageHref(current - 1)} rel="prev">Previous</a>}
+      <span class="list__count">Page {current} of {pages}</span>
+      {current < pages && <a class="pb-btn pb-btn--ghost" href={pageHref(current + 1)} rel="next">Next</a>}
+    </nav>
+  )}
+</div>
+
+<style>
+  .list { padding-block: var(--pb-section-y); }
+  .list__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: var(--pb-gap-lg);
+  }
+  .list__intro {
+    font-size: var(--pb-text-lead);
+    max-width: 60ch;
+  }
+  .list__empty { color: var(--pb-muted); }
+  .list__pager {
+    display: flex;
+    align-items: center;
+    gap: var(--pb-gap);
+    margin-top: var(--pb-gap-lg);
+  }
+  .list__count {
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+</style>

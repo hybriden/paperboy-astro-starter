@@ -1,0 +1,96 @@
+---
+/**
+ * Site header, from the HeaderSettings global.
+ *
+ * A global is a single document with no place in the page tree — exactly right
+ * for chrome. The menu is a content area of LinkItemBlock parts, so an editor
+ * adds a menu item the same way they add anything else, and an internal link
+ * follows the page it points at when someone renames or moves it.
+ *
+ * Falls back to a plain Home link when the global does not exist yet, because a
+ * site with no navigation at all reads as broken rather than as unconfigured.
+ */
+import { blockData, mediaUrl, pbAreaAttrs, type AreaBlock, type Delivered } from "@paperboycms/client";
+import LinkItemBlock from "./blocks/LinkItemBlock.astro";
+import { area, img } from "../lib/values";
+
+interface Props {
+  settings?: Delivered | null;
+  preview?: boolean;
+  /** Shown next to the logo, and used alone when there is no logo. */
+  siteName?: string;
+}
+const { settings = null, preview = false, siteName = "Home" } = Astro.props;
+
+const data = settings?.data ?? {};
+const logo = img(data, "logo");
+const menu: AreaBlock[] = area(data, "menuLinks");
+---
+
+<header class="site-header">
+  <a class="site-header__skip" href="#main">Skip to content</a>
+  <div class="pb-container site-header__inner">
+    <a class="site-header__brand" href="/">
+      {logo ? (
+        <img src={mediaUrl(logo.url, { w: 320, format: "webp" })} alt={logo.alt || siteName} height="36" />
+      ) : (
+        <span class="site-header__wordmark">{siteName}</span>
+      )}
+    </a>
+
+    <nav class="site-header__nav" aria-label="Main">
+      <ul class="site-header__menu" {...pbAreaAttrs("menuLinks", preview)}>
+        {menu.map((item) => (
+          <li><LinkItemBlock data={blockData(item)} preview={preview} variant="plain" /></li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-bottom: var(--pb-border-width) solid var(--pb-line);
+    background: var(--pb-bg);
+  }
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pb-gap);
+    min-height: 5rem;
+    flex-wrap: wrap;
+  }
+  .site-header__brand {
+    text-decoration: none;
+    font-size: var(--pb-text-h4);
+    font-weight: 500;
+  }
+  .site-header__wordmark { letter-spacing: -0.02em; }
+  .site-header__menu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: clamp(0.75rem, 0.5rem + 1.5vw, 2rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .site-header__menu a { text-decoration: none; }
+  .site-header__menu a:hover { text-decoration: underline; }
+
+  /* Visible only when focused — the first thing a keyboard user reaches. */
+  .site-header__skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 10;
+    padding: 0.75rem 1.25rem;
+    background: var(--pb-accent);
+    color: var(--pb-on-accent);
+    border-radius: 0 0 var(--pb-radius-chip) 0;
+  }
+  .site-header__skip:focus {
+    left: 0;
+  }
+</style>

@@ -1,0 +1,135 @@
+---
+/**
+ * The fallback: a block type this starter has no template for.
+ *
+ * Content types are DATA in Paperboy — someone can add one in the admin this
+ * afternoon. Rendering from the schema means that type shows up on the site
+ * immediately instead of rendering blank and looking broken, which is the whole
+ * reason delivery ships `fieldTypes` (the declared type of each public field)
+ * alongside the values. Value-sniffing cannot do this: an empty richtext field
+ * and an empty string look identical.
+ *
+ * When a type earns a real design, add a component to the registry in
+ * Blocks.astro. This stays as the safety net.
+ */
+import { isRichTextDoc, mediaSrcset, mediaUrl, renderRichText, type AreaBlock } from "@paperboycms/client";
+import Blocks from "../Blocks.astro";
+import { pbField } from "../../lib/editing";
+import { type Data, type PbImage } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  /** Declared type per public field. Without it we can only guess. */
+  types?: Record<string, string>;
+  preview?: boolean;
+  /** Nesting guard: a block containing a block containing a block… */
+  depth?: number;
+}
+const { data, types = {}, preview = false, depth = 0 } = Astro.props;
+
+const isImage = (v: unknown): v is PbImage =>
+  !!v && typeof v === "object" && typeof (v as { url?: unknown }).url === "string";
+const isLink = (v: unknown): v is { href: string; text?: string } =>
+  !!v && typeof v === "object" && typeof (v as { href?: unknown }).href === "string";
+const isBlocks = (v: unknown): v is AreaBlock[] =>
+  Array.isArray(v) && v.every((b) => b && typeof b === "object" && "blockType" in b);
+
+/** A field named like a title gets heading treatment; the rest is body copy. */
+const headingish = (name: string) => /^(heading|title|name)$/i.test(name) || /(heading|title)$/i.test(name);
+
+const entries = Object.entries(data);
+---
+
+<div class="generic">
+  {entries.map(([name, value]) => {
+    const kind = types[name];
+
+    // Richtext FIRST: a TipTap document is an object, so any later branch that
+    // stringifies would print "[object Object]" — the classic silent failure.
+    if (kind === "richtext" || (!kind && isRichTextDoc(value))) {
+      const html = isRichTextDoc(value) ? renderRichText(value) : "";
+      return html ? <div class="pb-prose" {...pbField(name, preview)} set:html={html} /> : null;
+    }
+
+    // Markdown arrives as source text. Rendering it needs a markdown library,
+    // which this starter deliberately does not depend on — so it is shown as
+    // pre-wrapped text rather than as raw syntax pretending to be prose.
+    if (kind === "markdown") {
+      return typeof value === "string" && value.trim() ? (
+        <p class="generic__markdown" {...pbField(name, preview)}>{value}</p>
+      ) : null;
+    }
+
+    if (kind === "contentArea" || (!kind && isBlocks(value))) {
+      if (depth >= 2 || !isBlocks(value) || value.length === 0) return null;
+      // Nested blocks go back through the dispatcher, so a nested type that DOES
+      // have a template gets it even inside an unknown parent.
+      return (
+        <div class="generic__area">
+          <Blocks blocks={value} preview={preview} depth={depth + 1} />
+        </div>
+      );
+    }
+
+    if (kind === "image" || (!kind && isImage(value))) {
+      if (!isImage(value)) return null;
+      return (
+        <figure class="pb-figure" {...pbField(name, preview)}>
+          <img
+            src={mediaUrl(value.url, { w: 1240, format: "webp" })}
+            srcset={mediaSrcset(value.url, [480, 960, 1440])}
+            sizes="(max-width: 1240px) 100vw, 1240px"
+            alt={value.alt ?? ""}
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
+      );
+    }
+
+    if (kind === "link" || (!kind && isLink(value))) {
+      if (!isLink(value) || !value.href) return null;
+      return (
+        <a class="pb-arrow-link" href={value.href}>
+          <span class="pb-arrow-link__dot" aria-hidden="true">&#8599;</span>
+          <span>{value.text || value.href}</span>
+        </a>
+      );
+    }
+
+    if (typeof value === "boolean" || typeof value === "number") {
+      return <p class="generic__meta" {...pbField(name, preview)}>{String(value)}</p>;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return headingish(name) ? (
+        <h2 class="generic__heading">
+          <span class="pb-highlight" {...pbField(name, preview)}>{value}</span>
+        </h2>
+      ) : (
+        <p {...pbField(name, preview)}>{value}</p>
+      );
+    }
+
+    return null;
+  })}
+</div>
+
+<style>
+  .generic {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pb-gap);
+    max-width: 68ch;
+  }
+  .generic__area {
+    max-width: none;
+  }
+  .generic__meta {
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+  .generic__markdown {
+    white-space: pre-wrap;
+  }
+</style>

@@ -25,10 +25,10 @@ const { spec, formId } = Astro.props;
 const honeypot = honeypotAttrs(spec);
 ---
 
-<form class="pb-form" method="POST" action="/api/submit" data-pb-form>
+<form class="pb-form" method="POST" action="/api/submit" data-paperboy-form>
   <input type="hidden" name="pb_form_id" value={formId} />
   <input type="hidden" name="pb_honeypot_field" value={spec.honeypotField} />
-  <input type="hidden" name="pb_elapsed_ms" value="0" data-pb-elapsed />
+  <input type="hidden" name="pb_elapsed_ms" value="0" data-paperboy-elapsed />
 
   {spec.title && <h2>{spec.title}</h2>}
 
@@ -39,10 +39,10 @@ const honeypot = honeypotAttrs(spec);
     }
     const a = fieldAttrs(field, { idPrefix: `pb-${formId}` });
     return (
-      <div class="pb-form__field">
+      <div class:list={["pb-form__field", (field.kind === "checkbox" || field.kind === "consent") && "pb-form__field--inline"]}>
         <label for={a.id}>
           {field.label}
-          {field.required && <span aria-hidden="true"> *</span>}
+          {field.required && <span class="pb-form__req" aria-hidden="true"> *</span>}
         </label>
 
         {field.kind === "textarea" ? (
@@ -77,32 +77,116 @@ const honeypot = honeypotAttrs(spec);
     <input {...honeypot.input} id={`pb-${formId}-hp`} />
   </div>
 
-  <button type="submit">{spec.submitLabel || "Send"}</button>
+  <button class="pb-btn pb-btn--accent pb-form__submit" type="submit">{spec.submitLabel || "Send"}</button>
 </form>
 
 <script>
   // How long the visitor actually had the form open. The CMS discards
   // submissions completed faster than a human could type, and a form that
   // reports nothing loses that (invisible, accessible) protection.
-  document.querySelectorAll<HTMLFormElement>("form[data-pb-form]").forEach((form) => {
+  document.querySelectorAll<HTMLFormElement>("form[data-paperboy-form]").forEach((form) => {
     const opened = Date.now();
     form.addEventListener("submit", () => {
-      const field = form.querySelector<HTMLInputElement>("input[data-pb-elapsed]");
+      const field = form.querySelector<HTMLInputElement>("input[data-paperboy-elapsed]");
       if (field) field.value = String(Date.now() - opened);
     });
   });
 </script>
 
 <style>
-  .pb-form__field { margin-block: 1rem; }
-  .pb-form__field label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
-  .pb-form__field input:not([type="checkbox"]):not([type="radio"]),
-  .pb-form__field textarea,
-  .pb-form__field select { width: 100%; max-width: 32rem; padding: 0.5rem 0.6rem; }
-  .pb-form__help { margin: 0.35rem 0 0; font-size: 0.85rem; opacity: 0.7; }
-  .pb-form__choices { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  /* The form is markup we own — delivery sends a schema, never HTML — so it
+     takes the same controls as the rest of the design: 14px radii, a 1px black
+     border, and the accent button for the one action that matters. */
+  .pb-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 34rem;
+  }
+  .pb-form > h2 { margin-bottom: 0.25rem; }
+
+  .pb-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .pb-form__field > label {
+    font-weight: 500;
+  }
+  .pb-form__req { color: var(--pb-danger); }
+
+  .pb-form__field :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]) {
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.75rem 1.25rem;
+    font: inherit;
+    color: inherit;
+    background: var(--pb-white);
+    border: var(--pb-border-width) solid var(--pb-line);
+    border-radius: var(--pb-radius-control);
+  }
+  .pb-form__field textarea {
+    min-height: 8rem;
+    resize: vertical;
+  }
+  .pb-form__field :is(input, textarea, select)::placeholder { color: #8b8c96; }
+
+  /* A checkbox belongs beside its label, not above it. */
+  .pb-form__field--inline {
+    /* row-reverse puts the box before its label visually while keeping the
+       label first in the DOM. In row-reverse, flex-END is the visual left. */
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  .pb-form__field--inline > label { font-weight: 400; }
+  .pb-form__field--inline input[type="checkbox"] {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: var(--pb-dark);
+  }
+
+  .pb-form__help {
+    margin: 0;
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+
+  .pb-form__choices {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .pb-form__choice {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 400;
+  }
+  .pb-form__choice input { accent-color: var(--pb-dark); }
+
+  .pb-form__heading {
+    font-size: var(--pb-text-h4);
+    margin-top: 0.5rem;
+  }
+
+  .pb-form__submit { align-self: flex-start; }
+
   .pb-visually-hidden {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

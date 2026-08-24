@@ -1,0 +1,125 @@
+---
+/**
+ * Every block type, rendered from fixtures — a design workbench.
+ *
+ * Why this exists: styling a CMS frontend otherwise means creating content in
+ * the admin first, and you cannot see a block you have no content for. This page
+ * renders all of them from `src/lib/fixtures.ts`, so you can restyle a block
+ * type and reload.
+ *
+ * DEV ONLY. It 404s in a production build — fixtures are sample content, and a
+ * page of fake content indexed under your domain is not a good look. Delete this
+ * folder if you would rather it did not exist at all.
+ */
+import Blocks from "../../components/Blocks.astro";
+import { ALL_BLOCKS, ALL_PAGES } from "../../lib/fixtures";
+import "../../styles/app.css";
+
+export const prerender = false;
+
+if (!import.meta.env.DEV) {
+  return new Response("Not found", { status: 404 });
+}
+
+const preview = Astro.url.searchParams.has("preview");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Kitchen sink — every block type</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+    />
+  </head>
+  <body>
+    <header class="ks-bar">
+      <div class="pb-container ks-bar__inner">
+        <strong>Kitchen sink</strong>
+        <span class="ks-bar__note">
+          {ALL_BLOCKS.length} block types · dev only ·
+          <a href={preview ? "/kitchen-sink" : "/kitchen-sink?preview"}>
+            {preview ? "showing editing markers" : "show editing markers"}
+          </a>
+        </span>
+      </div>
+    </header>
+
+    <nav class="pb-container ks-nav" aria-label="Page templates">
+      <span class="pb-eyebrow">Page templates</span>
+      <ul>
+        {ALL_PAGES.map((p) => (
+          <li><a class="pb-tag" href={`/kitchen-sink/${p.item.type}`}>{p.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <main>
+      {ALL_BLOCKS.map(({ label, block }) => (
+        <section class="ks-item">
+          <div class="pb-container">
+            <h2 class="ks-item__label">{label}</h2>
+          </div>
+          <div class="pb-container">
+            <Blocks blocks={[block]} preview={preview} />
+          </div>
+        </section>
+      ))}
+    </main>
+  </body>
+</html>
+
+<style>
+  .ks-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--pb-dark);
+    color: var(--pb-white);
+    padding-block: 0.75rem;
+  }
+  .ks-bar__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .ks-bar__note { font-size: var(--pb-text-small); }
+  .ks-bar a { color: var(--pb-green); }
+
+  .ks-nav {
+    padding-block: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ks-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ks-nav a { text-decoration: none; }
+
+  .ks-item { padding-block: var(--pb-section-y); }
+  .ks-item:nth-child(even) { background: #fafafa; }
+  .ks-item__label {
+    font-family: var(--pb-font-mono);
+    font-size: var(--pb-text-small);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pb-muted);
+    margin-bottom: var(--pb-gap);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e3e3e6;
+  }
+</style>

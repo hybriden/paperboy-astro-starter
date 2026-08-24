@@ -1,0 +1,27 @@
+# Run the frontend with one command:
+#
+#   docker compose up --build
+#
+# It reads .env — run `npm run setup` first, or write the four values yourself
+# (see .env.example). The site is then on http://localhost:4321
+#
+# Pointing at a Paperboy running in ANOTHER compose project on the same machine:
+# containers cannot reach your host's localhost, so use
+# PAPERBOY_API_URL=http://host.docker.internal:8091 (Docker Desktop), or join the
+# CMS's network and use its service name. `npm run setup` writes localhost, which
+# is right for `npm run dev` and wrong inside a container — the one gotcha here.
+
+services:
+  web:
+    build: .
+    # A named image, so `docker run` elsewhere is possible without compose.
+    image: paperboy-astro-starter:latest
+    env_file: .env
+    environment:
+      # The adapter binds to this; 0.0.0.0 is required for the port mapping to
+      # reach it from outside the container.
+      HOST: 0.0.0.0
+      PORT: "4321"
+    ports:
+      - "4321:4321"
+    restart: unless-stopped

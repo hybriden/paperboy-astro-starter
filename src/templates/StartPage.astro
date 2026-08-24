@@ -1,0 +1,52 @@
+---
+/**
+ * StartPage — the site's front page.
+ *
+ * Almost nothing here: a start page is composed of blocks in the admin, so this
+ * template's job is to render its content area and stay out of the way.
+ *
+ * When the first block is a hero it already carries the page's h1, so this
+ * template does not render a second one — two h1s is an outline bug that makes
+ * a screen reader announce two page titles. The heading field is still exposed
+ * for editing in preview, as plain text rather than a heading.
+ */
+import Blocks from "../components/Blocks.astro";
+import { pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import { pbField } from "../lib/editing";
+import { area, str } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const blocks: AreaBlock[] = area(data, "mainArea");
+const heroFirst = blocks[0]?.blockType === "HeroBlock" || blocks[0]?.content?.type === "HeroBlock";
+---
+
+<div class="pb-container">
+  {heading && !heroFirst && (
+    <h1 class="start__title">
+      <span {...pbField("heading", preview)}>{heading}</span>
+    </h1>
+  )}
+  {heading && heroFirst && preview && (
+    /* The hero owns the h1. Keep the field clickable for the editor without
+       adding a second heading to the page outline. */
+    <p class="start__editable-title" {...pbField("heading", preview)}>{heading}</p>
+  )}
+
+  <div class="pb-area" {...pbAreaAttrs("mainArea", preview)}>
+    <Blocks blocks={blocks} preview={preview} />
+  </div>
+</div>
+
+<style>
+  .start__title { margin-bottom: var(--pb-gap-lg); }
+  .start__editable-title {
+    padding-top: 1rem;
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+  .pb-area { padding-block: var(--pb-section-y); }
+</style>

@@ -1,0 +1,120 @@
+---
+/**
+ * What you see before the CMS is wired up.
+ *
+ * The alternative — and what this replaces — was a stack trace from a fetch to
+ * an empty URL, which tells a newcomer nothing. A starter's first run is part of
+ * its documentation: it should say exactly which values are missing and where
+ * they come from.
+ *
+ * Shown for any request while `PAPERBOY_API_URL` / `PAPERBOY_PUBLIC_KEY` are
+ * unset, with a 503 rather than a 200 so a health check does not think the site
+ * is fine.
+ */
+import { config, type Env } from "../lib/cms";
+
+interface Props {
+  env?: Env;
+}
+const { env } = Astro.props;
+const c = config(env);
+
+const rows = [
+  { name: "PAPERBOY_API_URL", value: c.apiUrl, where: "Your instance origin, e.g. https://cms.example.com" },
+  { name: "PAPERBOY_PUBLIC_KEY", value: c.publicKey, where: "Admin → Settings → API keys (pk_live_…)" },
+  { name: "PAPERBOY_PREVIEW_KEY", value: c.previewKey, where: "Admin → Settings → API keys (prv_…) — server-side only" },
+  { name: "PREVIEW_SECRET", value: c.previewSecret, where: "The API's own PREVIEW_SECRET, byte-identical" },
+];
+const missing = rows.filter((r) => !r.value);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Paperboy starter — not configured yet</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+    />
+  </head>
+  <body>
+    <main class="pb-container setup">
+      <h1><span class="pb-highlight">Almost there</span></h1>
+      <p class="setup__lead">
+        This is the Paperboy Astro starter. It is running — it just does not know which CMS to read yet.
+      </p>
+
+      <div class="pb-card setup__card">
+        <h2>Run the setup</h2>
+        <p>One command, and it will find a local Paperboy by itself:</p>
+        <pre><code>npm run setup</code></pre>
+        <p class="setup__muted">
+          It writes <code>.env</code>, then checks each key against your instance so a typo fails here rather than in
+          production.
+        </p>
+      </div>
+
+      <h2 class="setup__h2">{missing.length} of {rows.length} values still missing</h2>
+      <div class="setup__table-wrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Variable</th><th scope="col">Status</th><th scope="col">Where it comes from</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr>
+                <td><code>{r.name}</code></td>
+                <td>{r.value ? <span class="pb-tag">set</span> : <em>missing</em>}</td>
+                <td>{r.where}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="setup__muted">
+        No instance yet? Clone <a href="https://github.com/hybriden/paperboy">Paperboy</a>, run its setup script and
+        <code>docker compose up -d</code>, then run <code>npm run setup</code> here again.
+      </p>
+      <p><a class="pb-btn" href="/kitchen-sink">Meanwhile: see every block type</a></p>
+    </main>
+  </body>
+</html>
+
+<style>
+  .setup {
+    padding-block: clamp(2rem, 1rem + 4vw, 5rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 60rem;
+  }
+  .setup__lead { font-size: var(--pb-text-lead); max-width: 55ch; }
+  .setup__card { display: flex; flex-direction: column; gap: 0.75rem; }
+  .setup__h2 { margin-top: 1rem; }
+  .setup pre {
+    background: var(--pb-dark);
+    color: var(--pb-white);
+    padding: 1rem 1.25rem;
+    border-radius: var(--pb-radius-control);
+    overflow-x: auto;
+    margin: 0;
+  }
+  .setup code { font-family: var(--pb-font-mono); font-size: 0.95em; }
+  .setup__muted { color: var(--pb-muted); max-width: 65ch; }
+  .setup__table-wrap { overflow-x: auto; }
+  .setup table { width: 100%; border-collapse: collapse; }
+  .setup :is(th, td) {
+    border: 1px solid #dcdce0;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  .setup th { background: var(--pb-grey); }
+</style>

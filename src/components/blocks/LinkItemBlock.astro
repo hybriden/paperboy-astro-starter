@@ -1,0 +1,44 @@
+---
+/**
+ * LinkItemBlock — a single link.
+ *
+ * Used for menus, footer columns and link lists, so it is deliberately just a
+ * link with the design's green arrow dot. An internal link whose target is
+ * unpublished arrives with an empty href, and renders as plain text rather than
+ * as a link to nowhere.
+ */
+import { link, linkText, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+  /** "arrow" for a list row, "plain" for a nav item. */
+  variant?: "arrow" | "plain";
+}
+const { data, variant = "arrow" } = Astro.props;
+
+const l = link(data, "link");
+// The label is read separately from the href: an internal link to something
+// unpublished has no href, but the editor still typed a label and losing it
+// would make the item vanish from the menu with no explanation.
+const label = linkText(data, "link") || l?.href || "";
+---
+
+{l ? (
+  variant === "arrow" ? (
+    <a class="pb-arrow-link" href={l.href} target={l.target ?? undefined} title={l.title ?? undefined}>
+      <span class="pb-arrow-link__dot" aria-hidden="true">&#8599;</span>
+      <span>{label}</span>
+    </a>
+  ) : (
+    <a href={l.href} target={l.target ?? undefined} title={l.title ?? undefined}>{label}</a>
+  )
+) : (
+  label && <span class="link-item--dead">{label}</span>
+)}
+
+<style>
+  /* Not a link: the target isn't published (or is missing). Visible to an
+     editor in preview, unremarkable to a visitor. */
+  .link-item--dead { color: var(--pb-muted); }
+</style>

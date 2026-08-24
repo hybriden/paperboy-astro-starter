@@ -1,0 +1,42 @@
+---
+/**
+ * AccordionItemBlock — one expandable row.
+ *
+ * A part: normally nested inside an AccordionBlock, which passes the number.
+ * It still renders standalone if someone drops one into a page, because a block
+ * that renders nothing looks like a broken site rather than a misplaced block.
+ *
+ * Built on <details>/<summary>, so open/close, keyboard operation and screen
+ * reader announcements come from the browser. No JavaScript.
+ */
+import { pbField } from "../../lib/editing";
+import { bool, rich, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+  /** 1-based position, shown as 01 / 02 / 03 like the design's process list. */
+  number?: number;
+}
+const { data, preview = false, number } = Astro.props;
+
+const heading = str(data, "heading");
+const body = rich(data, "body");
+// In PREVIEW every row is open: an editor cannot click text they cannot see.
+const open = preview || bool(data, "expanded");
+---
+
+{(heading || body) && (
+  <details class="pb-accordion__item" open={open}>
+    <summary class="pb-accordion__summary">
+      {number !== undefined && (
+        <span class="pb-accordion__number" aria-hidden="true">{String(number).padStart(2, "0")}</span>
+      )}
+      <span {...pbField("heading", preview)}>{heading}</span>
+      <span class="pb-accordion__toggle" aria-hidden="true"></span>
+    </summary>
+    {body && (
+      <div class="pb-accordion__body pb-prose" {...pbField("body", preview)} set:html={body} />
+    )}
+  </details>
+)}

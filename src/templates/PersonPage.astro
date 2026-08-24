@@ -1,0 +1,105 @@
+---
+/**
+ * PersonPage — a profile.
+ *
+ * Portrait and contact details beside a richtext bio. Paperboy emits
+ * ProfilePage JSON-LD for this type, so the visible markup only has to be
+ * good HTML.
+ */
+import { mediaSrcset, mediaUrl } from "@paperboycms/client";
+import { pbField } from "../lib/editing";
+import { img, rich, str } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, preview = false } = Astro.props;
+
+const image = img(data, "image");
+const first = str(data, "firstName");
+const last = str(data, "lastName");
+const name = [first, last].filter(Boolean).join(" ");
+const workTitle = str(data, "workTitle");
+const department = str(data, "department");
+const email = str(data, "email");
+const phone = str(data, "phone");
+const bio = rich(data, "bio");
+---
+
+<div class="pb-container person-page">
+  <div class="person-page__grid">
+    <aside class="person-page__card pb-card pb-card--grey">
+      {image && (
+        <img
+          class="person-page__portrait"
+          src={mediaUrl(image.url, { w: 640, format: "webp" })}
+          srcset={mediaSrcset(image.url, [320, 640, 960])}
+          sizes="(max-width: 900px) 60vw, 320px"
+          alt={image.alt || name}
+          {...pbField("image", preview)}
+          decoding="async"
+        />
+      )}
+      {(email || phone) && (
+        <ul class="person-page__contact">
+          {email && <li><a href={`mailto:${email}`} {...pbField("email", preview)}>{email}</a></li>}
+          {phone && (
+            <li><a href={`tel:${phone.replace(/[^+\d]/g, "")}`} {...pbField("phone", preview)}>{phone}</a></li>
+          )}
+        </ul>
+      )}
+    </aside>
+
+    <div class="person-page__main">
+      <h1>
+        <span {...pbField("firstName", preview)}>{first}</span>
+        {" "}
+        <span class="pb-highlight" {...pbField("lastName", preview)}>{last}</span>
+      </h1>
+      {workTitle && <p class="person-page__role" {...pbField("workTitle", preview)}>{workTitle}</p>}
+      {department && <p class="pb-meta" {...pbField("department", preview)}>{department}</p>}
+      {bio && <div class="pb-prose person-page__bio" {...pbField("bio", preview)} set:html={bio} />}
+    </div>
+  </div>
+</div>
+
+<style>
+  .person-page { padding-block: var(--pb-section-y); }
+  .person-page__grid {
+    display: grid;
+    gap: var(--pb-gap-lg);
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  @media (min-width: 900px) {
+    .person-page__grid { grid-template-columns: 20rem 1fr; }
+  }
+  .person-page__card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .person-page__portrait {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: var(--pb-radius-control);
+    border: var(--pb-border-width) solid var(--pb-line);
+  }
+  .person-page__contact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: var(--pb-text-small);
+  }
+  .person-page__contact a { text-decoration: underline; }
+  .person-page__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .person-page__role { font-size: var(--pb-text-lead); }
+  .person-page__bio { margin-top: 1rem; max-width: 68ch; }
+</style>

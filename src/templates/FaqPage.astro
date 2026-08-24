@@ -1,0 +1,53 @@
+---
+/**
+ * FaqPage — heading, intro, and topics of questions.
+ *
+ * The topics area only accepts FaqTopicBlock (the content type says so), so
+ * this template renders the area and lets those blocks own the accordion.
+ * Paperboy emits FAQPage JSON-LD for this type from its schema roles.
+ */
+import { pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import Blocks from "../components/Blocks.astro";
+import { pbField } from "../lib/editing";
+import { area, str } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const intro = str(data, "intro");
+const topics: AreaBlock[] = area(data, "topics");
+---
+
+<div class="pb-container faq">
+  <header class="faq__head">
+    <h1>
+      <span class="pb-highlight" {...pbField("heading", preview)}>{heading}</span>
+    </h1>
+    {intro && <p class="faq__intro" {...pbField("intro", preview)}>{intro}</p>}
+  </header>
+
+  <div class="faq__topics" {...pbAreaAttrs("topics", preview)}>
+    <Blocks blocks={topics} preview={preview} />
+  </div>
+</div>
+
+<style>
+  .faq { padding-block: var(--pb-section-y); }
+  .faq__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: var(--pb-gap-lg);
+  }
+  .faq__intro {
+    font-size: var(--pb-text-lead);
+    max-width: 60ch;
+  }
+  .faq__topics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pb-gap-lg);
+  }
+</style>

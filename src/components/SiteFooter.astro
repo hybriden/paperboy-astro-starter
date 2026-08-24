@@ -1,0 +1,74 @@
+---
+/**
+ * Site footer, from the FooterSettings global.
+ *
+ * The design's dark closing panel: link list on one side, editorial text on the
+ * other. Renders nothing at all when the global is absent — an empty black slab
+ * would be worse than no footer.
+ */
+import { blockData, pbAreaAttrs, type AreaBlock, type Delivered } from "@paperboycms/client";
+import LinkItemBlock from "./blocks/LinkItemBlock.astro";
+import { pbField } from "../lib/editing";
+import { area, rich } from "../lib/values";
+
+interface Props {
+  settings?: Delivered | null;
+  preview?: boolean;
+}
+const { settings = null, preview = false } = Astro.props;
+
+const data = settings?.data ?? {};
+const links: AreaBlock[] = area(data, "links");
+const text = rich(data, "footerText");
+const hasContent = links.length > 0 || text.trim().length > 0 || preview;
+---
+
+{hasContent && (
+  <footer class="site-footer">
+    <div class="pb-container">
+      <div class="site-footer__panel pb-panel pb-panel--dark">
+        <nav class="site-footer__nav" aria-label="Footer">
+          <ul class="site-footer__links" {...pbAreaAttrs("links", preview)}>
+            {links.map((l) => (
+              <li><LinkItemBlock data={blockData(l)} preview={preview} variant="plain" /></li>
+            ))}
+          </ul>
+        </nav>
+        {text && (
+          <div class="site-footer__text pb-prose" {...pbField("footerText", preview)} set:html={text} />
+        )}
+      </div>
+    </div>
+  </footer>
+)}
+
+<style>
+  .site-footer {
+    padding-block: var(--pb-section-y) var(--pb-gap-lg);
+  }
+  .site-footer__panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pb-gap-lg);
+    justify-content: space-between;
+  }
+  .site-footer__links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .site-footer__links a { text-decoration: none; }
+  .site-footer__links a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--pb-accent);
+  }
+  .site-footer__text {
+    max-width: 46ch;
+    /* On the dark panel, links need the accent to stay findable. */
+    --pb-accent: var(--pb-green);
+  }
+  .site-footer__text :global(a) { color: var(--pb-green); }
+</style>

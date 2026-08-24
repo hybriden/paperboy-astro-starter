@@ -1,0 +1,95 @@
+---
+/**
+ * ArticlePage — one article.
+ *
+ * A narrow measure for the body, the lead image full width above it, and the
+ * byline/date as real <time>. Paperboy already emits Article JSON-LD for this
+ * type from its SEO roles, so there is no structured data to hand-write.
+ */
+import { mediaSrcset, mediaUrl, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import Blocks from "../components/Blocks.astro";
+import { pbField } from "../lib/editing";
+import { area, img, rich, str } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, preview = false, locale = "en" } = Astro.props;
+
+const heading = str(data, "heading");
+const intro = str(data, "intro");
+const author = str(data, "author");
+const published = str(data, "publishDate");
+const image = img(data, "mainImage");
+const caption = str(data, "imageCaption");
+const body = rich(data, "body");
+const blocks: AreaBlock[] = area(data, "mainArea");
+
+// Format in the reader's locale, but keep the machine-readable value in
+// datetime= so crawlers and assistive tech get an unambiguous date.
+const when = published ? new Date(published) : null;
+const validDate = when && !Number.isNaN(when.getTime()) ? when : null;
+const shown = validDate
+  ? new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(validDate)
+  : "";
+---
+
+<article class="article">
+  <header class="pb-container article__head">
+    <h1>
+      <span class="pb-highlight" {...pbField("heading", preview)}>{heading}</span>
+    </h1>
+    {intro && <p class="article__intro" {...pbField("intro", preview)}>{intro}</p>}
+    {(author || shown) && (
+      <p class="pb-meta">
+        {author && <span {...pbField("author", preview)}>{author}</span>}
+        {validDate && (
+          <time datetime={validDate.toISOString()} {...pbField("publishDate", preview)}>{shown}</time>
+        )}
+      </p>
+    )}
+  </header>
+
+  {image && (
+    <div class="pb-container">
+      <figure class="pb-figure article__figure" {...pbField("mainImage", preview)}>
+        <img
+          src={mediaUrl(image.url, { w: 1240, format: "webp" })}
+          srcset={mediaSrcset(image.url, [640, 1240, 1920])}
+          sizes="(max-width: 1240px) 100vw, 1240px"
+          alt={image.alt ?? ""}
+          fetchpriority="high"
+          decoding="async"
+        />
+        {caption && <figcaption {...pbField("imageCaption", preview)}>{caption}</figcaption>}
+      </figure>
+    </div>
+  )}
+
+  {body && (
+    <div class="pb-container">
+      <div class="article__body pb-prose" {...pbField("body", preview)} set:html={body} />
+    </div>
+  )}
+
+  <div class="pb-container">
+    <div class="pb-area article__blocks" {...pbAreaAttrs("mainArea", preview)}>
+      <Blocks blocks={blocks} preview={preview} />
+    </div>
+  </div>
+</article>
+
+<style>
+  .article__head {
+    padding-block: var(--pb-section-y) var(--pb-gap-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: calc(68ch + 2 * var(--pb-gutter));
+  }
+  .article__intro {
+    font-size: var(--pb-text-lead);
+  }
+  .article__figure { margin-bottom: var(--pb-gap-lg); }
+  .article__body { max-width: 68ch; margin-inline: auto; }
+  .article__blocks { padding-block: var(--pb-section-y); }
+</style>

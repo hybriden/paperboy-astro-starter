@@ -1,7 +1,6 @@
 ---
 /**
- * Page shell. Deliberately unstyled beyond the bare minimum — this is a starter,
- * and your design system belongs here rather than being deleted out of it.
+ * Page shell: head, chrome, and the slot your page renders into.
  *
  * The head is assembled from Paperboy's computed `seo` block, which every PAGE
  * item carries: meta, canonical, robots, OpenGraph, Twitter, JSON-LD and a
@@ -16,17 +15,26 @@
  *                  content="[object Object]" and no scraper ever complains
  *   breadcrumb     a plain array of {name, urlPath}; real BreadcrumbList JSON-LD
  *                  has to be BUILT from it, not stringified as-is
+ *
+ * Header and footer come from the HeaderSettings / FooterSettings globals and
+ * are fetched HERE, so every page gets chrome without each route asking for it.
  */
-import type { DeliverySeo } from "@paperboycms/client";
+import type { Delivered, DeliverySeo } from "@paperboycms/client";
 import PreviewBridge from "../components/PreviewBridge.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { cms, type Env } from "../lib/cms";
+import "../styles/app.css";
 
 interface Props {
   seo?: DeliverySeo | null;
   preview?: boolean;
   /** Fallback title for routes with no CMS item behind them (404, errors). */
   title?: string;
+  /** Runtime env, passed through so the globals fetch works on any host. */
+  env?: Env;
 }
-const { seo, preview = false, title } = Astro.props;
+const { seo, preview = false, title, env } = Astro.props;
 
 // Prefer the configured `site` in astro.config.mjs (stable behind proxies and
 // CDNs); fall back to the request origin so the starter works with no config.
@@ -53,7 +61,27 @@ const breadcrumbLd =
         })),
       })
     : null;
+
+/**
+ * Chrome. A missing global is normal (nobody has created it yet) and must not
+ * take the page down with it, so both fetches fall back to null rather than
+ * throwing — a page with no nav still beats a 500.
+ */
+let header: Delivered | null = null;
+let footer: Delivered | null = null;
+try {
+  const client = cms(env, preview);
+  [header, footer] = await Promise.all([
+    client.global("HeaderSettings").catch(() => null),
+    client.global("FooterSettings").catch(() => null),
+  ]);
+} catch {
+  // No CMS configured yet, or unreachable. A page with no nav still beats a 500
+  // — and it means `npm run dev` works before you have filled in .env.
+}
+const siteName = og?.siteName ?? "Home";
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -82,13 +110,27 @@ const breadcrumbLd =
 
     {seo?.twitter?.card && <meta name="twitter:card" content={seo.twitter.card} />}
 
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
     {jsonLd && <script type="application/ld+json" set:html={jsonLd} />}
     {breadcrumbLd && <script type="application/ld+json" set:html={breadcrumbLd} />}
+
+    {/* Space Grotesk is the design's typeface. Preconnect so the font request
+        starts before the CSS that asks for it; the stack in tokens.css keeps
+        the page readable if the request is blocked. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+    />
   </head>
   <body>
-    <main>
+    <SiteHeader settings={header} preview={preview} siteName={siteName} />
+    <main id="main">
       <slot />
     </main>
+    <SiteFooter settings={footer} preview={preview} />
     {preview && <PreviewBridge />}
   </body>
 </html>

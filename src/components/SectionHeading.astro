@@ -1,0 +1,52 @@
+---
+/**
+ * The design's section header: a heading sitting on a green highlight, with an
+ * optional intro paragraph beside it.
+ *
+ * Used by every block that has a heading, so the rhythm and the highlight are
+ * defined once. The highlight is on a <span> inside the heading so it hugs the
+ * words rather than the whole line box.
+ */
+import { pbField } from "../lib/editing";
+
+interface Props {
+  heading: string;
+  intro?: string;
+  /** Field names, so a click in preview opens the right input. */
+  headingField?: string;
+  introField?: string;
+  preview?: boolean;
+  /** h2 by default; a nested block uses h3 so the outline stays correct. */
+  as?: "h1" | "h2" | "h3";
+  /** Small label above the heading (a type name, a date, a category). */
+  eyebrow?: string;
+}
+
+const {
+  heading,
+  intro = "",
+  headingField = "heading",
+  introField = "intro",
+  preview = false,
+  as = "h2",
+  eyebrow = "",
+} = Astro.props;
+
+const Tag = as;
+---
+
+{(heading || intro || eyebrow) && (
+  <div class="pb-section-head">
+    <div>
+      {eyebrow && <p class="pb-eyebrow">{eyebrow}</p>}
+      {heading && (
+        <Tag>
+          <span class="pb-highlight" {...pbField(headingField, preview)}>{heading}</span>
+        </Tag>
+      )}
+    </div>
+    {intro && (
+      <p class="pb-section-head__intro" {...pbField(introField, preview)}>{intro}</p>
+    )}
+  </div>
+)}

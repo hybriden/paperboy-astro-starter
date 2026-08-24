@@ -1,0 +1,38 @@
+---
+/**
+ * FaqTopicBlock — a named group of questions.
+ *
+ * The topic is an h3 because it sits under the FAQ page's own h1; keeping the
+ * outline intact is what lets a screen-reader user jump between topics.
+ */
+import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import QuestionBlock from "./QuestionBlock.astro";
+import { pbField } from "../../lib/editing";
+import { area, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const topic = str(data, "topic");
+const questions: AreaBlock[] = area(data, "questions");
+---
+
+<section class="faq-topic">
+  {topic && (
+    <h3 class="faq-topic__title">
+      <span class="pb-highlight" {...pbField("topic", preview)}>{topic}</span>
+    </h3>
+  )}
+  <div class="pb-accordion" {...pbAreaAttrs("questions", preview)}>
+    {questions.map((q) => (
+      <QuestionBlock data={blockData(q)} preview={preview} />
+    ))}
+  </div>
+</section>
+
+<style>
+  .faq-topic__title { margin-bottom: var(--pb-gap); }
+</style>

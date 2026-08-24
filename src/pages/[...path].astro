@@ -6,17 +6,49 @@
  * renders the whole site: no per-type route files, no rebuild when an editor
  * adds a page or moves a branch. `/` falls through to the configured start page.
  *
- * `populate: 2` resolves references and shared blocks two levels deep — enough
- * for a page's blocks and the documents those blocks point at (a Form, a teaser).
+ * The TEMPLATES map picks a layout by content type name. Anything not in it gets
+ * GenericPage, which renders from the delivered schema — a page type added in
+ * the admin this afternoon shows up as a real page today.
+ *
+ * `populate: 2` resolves shared blocks and references two levels deep: enough
+ * for a page's blocks plus the documents those blocks point at (a Form, a
+ * teased page). Raise it if you nest deeper; the server clamps at 4.
  */
-import { cms, isPreview } from "../lib/cms";
-import Blocks from "../components/Blocks.astro";
+import { cms, config, isPreview } from "../lib/cms";
 import Layout from "../layouts/Base.astro";
-import { contentAreas, pbAreaAttrs } from "@paperboycms/client";
+import ArticleListPage from "../templates/ArticleListPage.astro";
+import ArticlePage from "../templates/ArticlePage.astro";
+import FaqPage from "../templates/FaqPage.astro";
+import GenericPage from "../templates/GenericPage.astro";
+import PersonPage from "../templates/PersonPage.astro";
+import SectionPage from "../templates/SectionPage.astro";
+import StartPage from "../templates/StartPage.astro";
+import type { Delivered } from "@paperboycms/client";
+import { str } from "../lib/values";
 
 export const prerender = false;
 
+/** Content type name -> page template. One line per design. */
+const TEMPLATES: Record<string, any> = {
+  StartPage,
+  SectionPage,
+  ArticlePage,
+  ArticleListPage,
+  FaqPage,
+  PersonPage,
+};
+
 const env = (Astro.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+
+/**
+ * Nothing configured yet? Say so, in words, with a 503 — rather than throwing a
+ * fetch error at an empty URL. This is a starter: the first run has to teach.
+ */
+const cfg = config(env);
+if (!cfg.apiUrl || !cfg.publicKey) {
+  return Astro.rewrite("/not-configured");
+}
+
 const preview = await isPreview(Astro.url, env);
 const client = cms(env, preview);
 
@@ -26,26 +58,40 @@ const page = path === "/" ? await client.startPage({ populate: 2 }) : await clie
 if (!page) return Astro.rewrite("/404");
 
 const data = page.data ?? {};
-const areas = contentAreas(data, page.fieldTypes);
-// Fields that are not content areas, in declaration order — the page's own copy.
-const own = Object.entries(data).filter(([field]) => page.fieldTypes?.[field] !== "contentArea");
-const fieldAttr = (name: string) => (preview ? { "data-pb-field": name } : {});
+const Template = TEMPLATES[page.type] ?? GenericPage;
+
+/**
+ * A list page needs its children. Fetched HERE rather than inside the template
+ * so templates stay pure renders (and testable without a CMS), and so only the
+ * one type that needs a second request makes one.
+ *
+ * No `sort` is passed on purpose: the container's own child-sort rule, set in
+ * the admin tree, is the editor's decision and delivery already applies it.
+ */
+let items: Delivered[] = [];
+if (page.type === "ArticleListPage") {
+  const listedType = str(data, "listedType") || "ArticlePage";
+  const { items: children } = await client.list(listedType, {
+    parentId: page.documentId,
+    locale: page.locale,
+    populate: 0,
+  });
+  items = children;
+}
+
+const pageParam = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10);
+const pageNumber = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 ---
 
-<Layout seo={page.seo} preview={preview}>
-  <article>
-    {own.map(([name, value]) =>
-      typeof value === "string" && value
-        ? (/title|head(ing)?$/i.test(name)
-            ? <h1 {...fieldAttr(name)}>{value}</h1>
-            : <p {...fieldAttr(name)}>{value}</p>)
-        : null,
-    )}
-
-    {areas.map((area) => (
-      <div class="pb-area" {...pbAreaAttrs(area.field, preview)}>
-        <Blocks blocks={area.blocks} preview={preview} />
-      </div>
-    ))}
-  </article>
+<Layout seo={page.seo} preview={preview} env={env}>
+  <Template
+    data={data}
+    types={page.fieldTypes}
+    name={page.name}
+    locale={page.locale}
+    items={items}
+    page={pageNumber}
+    basePath={page.urlPath ?? path}
+    preview={preview}
+  />
 </Layout>

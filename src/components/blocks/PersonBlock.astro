@@ -1,0 +1,108 @@
+---
+/**
+ * PersonBlock — one team member.
+ *
+ * The design's team card: portrait, name, role, and the contact details the
+ * editor filled in. Email and phone become real mailto:/tel: links, because a
+ * phone number that isn't tappable on a phone is a broken feature.
+ */
+import { mediaUrl } from "@paperboycms/client";
+import { pbField } from "../../lib/editing";
+import { img, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+  /** h3 inside a page that already has an h1/h2 above it. */
+  as?: "h2" | "h3";
+}
+const { data, preview = false, as = "h3" } = Astro.props;
+
+const image = img(data, "image");
+const first = str(data, "firstName");
+const last = str(data, "lastName");
+const name = [first, last].filter(Boolean).join(" ");
+const workTitle = str(data, "workTitle");
+const department = str(data, "department");
+const email = str(data, "email");
+const phone = str(data, "phone");
+const Tag = as;
+---
+
+<article class="person pb-card">
+  <header class="person__head">
+    {image ? (
+      <img
+        class="pb-avatar"
+        src={mediaUrl(image.url, { w: 220, format: "webp" })}
+        alt={image.alt || name}
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <span class="person__initials" aria-hidden="true">
+        {(first.slice(0, 1) + last.slice(0, 1)).toUpperCase()}
+      </span>
+    )}
+    <div>
+      <Tag class="person__name">
+        <span {...pbField("firstName", preview)}>{first}</span>
+        {" "}
+        <span {...pbField("lastName", preview)}>{last}</span>
+      </Tag>
+      {workTitle && <p class="person__role" {...pbField("workTitle", preview)}>{workTitle}</p>}
+      {department && <p class="person__dept" {...pbField("department", preview)}>{department}</p>}
+    </div>
+  </header>
+
+  {(email || phone) && (
+    <ul class="person__contact">
+      {email && (
+        <li><a href={`mailto:${email}`} {...pbField("email", preview)}>{email}</a></li>
+      )}
+      {phone && (
+        <li><a href={`tel:${phone.replace(/[^+\d]/g, "")}`} {...pbField("phone", preview)}>{phone}</a></li>
+      )}
+    </ul>
+  )}
+</article>
+
+<style>
+  .person {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .person__head {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .person__initials {
+    display: grid;
+    place-items: center;
+    width: 5.5rem;
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: var(--pb-border-width) solid var(--pb-line);
+    background: var(--pb-accent);
+    font-size: var(--pb-text-h3);
+  }
+  .person__name { margin-bottom: 0.35rem; }
+  .person__role { font-weight: 500; }
+  .person__dept {
+    color: var(--pb-muted);
+    font-size: var(--pb-text-small);
+  }
+  .person__contact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: var(--pb-text-small);
+  }
+  .person__contact a { text-decoration: underline; }
+</style>

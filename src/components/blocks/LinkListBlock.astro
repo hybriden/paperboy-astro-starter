@@ -1,0 +1,45 @@
+---
+/**
+ * LinkListBlock — a heading and a list of LinkItemBlock parts.
+ *
+ * A real <ul>, so assistive tech announces how many links there are.
+ */
+import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import LinkItemBlock from "./LinkItemBlock.astro";
+import { pbField } from "../../lib/editing";
+import { area, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const links: AreaBlock[] = area(data, "links");
+---
+
+<div class="link-list pb-card pb-card--grey">
+  {heading && (
+    <h3 class="link-list__title">
+      <span {...pbField("heading", preview)}>{heading}</span>
+    </h3>
+  )}
+  <ul class="link-list__items" {...pbAreaAttrs("links", preview)}>
+    {links.map((l) => (
+      <li><LinkItemBlock data={blockData(l)} preview={preview} /></li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .link-list__title { margin-bottom: var(--pb-gap); }
+  .link-list__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+</style>

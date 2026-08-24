@@ -1,0 +1,87 @@
+---
+/**
+ * A card that teases another page.
+ *
+ * Two things produce one of these: a PAGE dropped into a content area (delivery
+ * resolves it with `kind: "page"` and a `urlPath`), and a list page listing its
+ * children. Both go through this component so a teaser looks the same wherever
+ * it comes from.
+ *
+ * Paperboy's built-in page types carry `teaserTitle` / `teaserText` /
+ * `teaserImage` fields precisely so an editor can control how a page appears
+ * elsewhere — those win over the page's own heading when set.
+ */
+import { mediaSrcset, mediaUrl } from "@paperboycms/client";
+import type { PbImage } from "../lib/values";
+
+interface Props {
+  href?: string | null;
+  title: string;
+  text?: string;
+  image?: PbImage | null;
+  /** Cycled by grids so a row of cards alternates like the design does. */
+  tone?: "white" | "grey" | "accent" | "dark";
+  eyebrow?: string;
+}
+
+const { href, title, text = "", image = null, tone = "white", eyebrow = "" } = Astro.props;
+
+const toneClass = {
+  white: "",
+  grey: "pb-card--grey",
+  accent: "pb-card--accent",
+  dark: "pb-card--dark",
+}[tone];
+
+// A teaser with nowhere to go is still worth rendering (it shows the editor
+// something is there), but it must not become a link to the current page.
+const Tag = href ? "a" : "div";
+---
+
+<Tag class={`pb-card pb-teaser ${toneClass}`} href={href ?? undefined}>
+  {image && (
+    <img
+      class="pb-teaser__img"
+      src={mediaUrl(image.url, { w: 640, format: "webp" })}
+      srcset={mediaSrcset(image.url, [320, 640, 960])}
+      sizes="(max-width: 700px) 100vw, 380px"
+      alt={image.alt ?? ""}
+      loading="lazy"
+      decoding="async"
+    />
+  )}
+  {eyebrow && <p class="pb-eyebrow">{eyebrow}</p>}
+  <h3 class="pb-teaser__title">{title}</h3>
+  {text && <p class="pb-teaser__text">{text}</p>}
+  {href && (
+    <span class="pb-arrow-link pb-teaser__more">
+      <span class="pb-arrow-link__dot" aria-hidden="true">&#8599;</span>
+      <span>Read more</span>
+    </span>
+  )}
+</Tag>
+
+<style>
+  .pb-teaser {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+  a.pb-teaser:hover {
+    box-shadow: var(--pb-shadow-press);
+    transform: translateY(3px);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .pb-teaser__img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--pb-radius-control);
+  }
+  .pb-teaser__text {
+    color: inherit;
+    opacity: 0.85;
+  }
+  .pb-teaser__more { margin-top: auto; }
+</style>

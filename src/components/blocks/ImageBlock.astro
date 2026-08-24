@@ -1,0 +1,35 @@
+---
+/**
+ * ImageBlock — an image with an optional caption.
+ *
+ * Width and height are emitted so the browser reserves the space before the
+ * image arrives (no layout shift); the srcset lets the CMS's variant pipeline
+ * serve a size that fits the slot instead of the original upload.
+ */
+import { mediaSrcset, mediaUrl } from "@paperboycms/client";
+import { pbField } from "../../lib/editing";
+import { img, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const image = img(data, "image");
+const caption = str(data, "caption");
+---
+
+{image && (
+  <figure class="pb-figure" {...pbField("image", preview)}>
+    <img
+      src={mediaUrl(image.url, { w: 1240, format: "webp" })}
+      srcset={mediaSrcset(image.url, [480, 960, 1440, 1920])}
+      sizes="(max-width: 1240px) 100vw, 1240px"
+      alt={image.alt ?? ""}
+      loading="lazy"
+      decoding="async"
+    />
+    {caption && <figcaption {...pbField("caption", preview)}>{caption}</figcaption>}
+  </figure>
+)}

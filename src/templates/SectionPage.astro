@@ -1,0 +1,58 @@
+---
+/**
+ * SectionPage — a landing page for a part of the site.
+ *
+ * Heading and intro, an optional richtext body, then blocks. The intro doubles
+ * as the meta description via the type's SEO roles, which is why it is plain
+ * text rather than richtext.
+ */
+import Blocks from "../components/Blocks.astro";
+import { pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import { pbField } from "../lib/editing";
+import { area, rich, str } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const intro = str(data, "intro");
+const body = rich(data, "body");
+const blocks: AreaBlock[] = area(data, "mainArea");
+---
+
+<article>
+  <header class="pb-container section__head">
+    <h1>
+      <span class="pb-highlight" {...pbField("heading", preview)}>{heading}</span>
+    </h1>
+    {intro && <p class="section__intro" {...pbField("intro", preview)}>{intro}</p>}
+  </header>
+
+  {body && (
+    <div class="pb-container">
+      <div class="section__body pb-prose" {...pbField("body", preview)} set:html={body} />
+    </div>
+  )}
+
+  <div class="pb-container">
+    <div class="pb-area section__blocks" {...pbAreaAttrs("mainArea", preview)}>
+      <Blocks blocks={blocks} preview={preview} />
+    </div>
+  </div>
+</article>
+
+<style>
+  .section__head {
+    padding-block: var(--pb-section-y) var(--pb-gap-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .section__intro {
+    font-size: var(--pb-text-lead);
+    max-width: 60ch;
+  }
+  .section__body { max-width: 68ch; }
+  .section__blocks { padding-block: var(--pb-section-y); }
+</style>

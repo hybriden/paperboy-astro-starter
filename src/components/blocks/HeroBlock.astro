@@ -1,0 +1,90 @@
+---
+/**
+ * HeroBlock — heading, subtitle, image, two links.
+ *
+ * The design's opening statement: statement left, illustration right, a filled
+ * primary action and an outlined secondary one.
+ */
+import { mediaSrcset, mediaUrl } from "@paperboycms/client";
+import { pbField } from "../../lib/editing";
+import { img, link, linkLabel, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const subtitle = str(data, "subtitle");
+const image = img(data, "image");
+const primary = link(data, "primaryLink");
+const secondary = link(data, "secondaryLink");
+---
+
+<div class="hero">
+  <div class="hero__text">
+    {heading && <h1 {...pbField("heading", preview)}>{heading}</h1>}
+    {subtitle && <p class="hero__sub" {...pbField("subtitle", preview)}>{subtitle}</p>}
+    {(primary || secondary) && (
+      <div class="hero__actions">
+        {primary && (
+          <a class="pb-btn" href={primary.href} target={primary.target ?? undefined}>
+            {linkLabel(primary, "Get started")}
+          </a>
+        )}
+        {secondary && (
+          <a class="pb-btn pb-btn--ghost" href={secondary.href} target={secondary.target ?? undefined}>
+            {linkLabel(secondary, "Learn more")}
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+
+  {image && (
+    <div class="hero__media" {...pbField("image", preview)}>
+      <img
+        src={mediaUrl(image.url, { w: 960, format: "webp" })}
+        srcset={mediaSrcset(image.url, [480, 960, 1440])}
+        sizes="(max-width: 900px) 100vw, 560px"
+        alt={image.alt ?? ""}
+        width="560"
+        height="420"
+        fetchpriority="high"
+        decoding="async"
+      />
+    </div>
+  )}
+</div>
+
+<style>
+  .hero {
+    display: grid;
+    gap: var(--pb-gap-lg);
+    align-items: center;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 900px) {
+    .hero { grid-template-columns: 1fr 1fr; }
+  }
+  .hero__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  .hero__sub {
+    font-size: var(--pb-text-lead);
+    max-width: 46ch;
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pb-gap);
+  }
+  .hero__media img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--pb-radius-card);
+  }
+</style>

@@ -1,0 +1,62 @@
+---
+/**
+ * The fallback page template: a page type this starter has no design for.
+ *
+ * Same reasoning as GenericBlock. A content type added in the admin gets a real
+ * page — heading, fields rendered by their declared type, and every content
+ * area rendered through the block registry — rather than a blank screen. When
+ * the type deserves its own layout, add a template and one line to the map in
+ * `[...path].astro`.
+ */
+import { contentAreas, pbAreaAttrs } from "@paperboycms/client";
+import Blocks from "../components/Blocks.astro";
+import GenericBlock from "../components/blocks/GenericBlock.astro";
+import { pbField } from "../lib/editing";
+import { firstStr, type Data } from "../lib/values";
+import type { TemplateProps } from "./props";
+
+type Props = TemplateProps;
+const { data, types = {}, name = "", preview = false } = Astro.props;
+
+const heading = firstStr(data, ["heading", "title"]) || name;
+const headingField = ["heading", "title"].find((f) => typeof data[f] === "string" && data[f]);
+
+// Content areas are rendered as blocks; everything else goes through the
+// schema-driven field renderer. Splitting them here keeps GenericBlock from
+// having to know about page-level layout.
+const areas = contentAreas(data, types);
+const areaFields = new Set(areas.map((a) => a.field));
+const scalarData: Data = Object.fromEntries(
+  Object.entries(data).filter(([field]) => !areaFields.has(field) && field !== headingField),
+);
+---
+
+<div class="pb-container generic-page">
+  {heading && (
+    <h1>
+      {headingField ? (
+        <span class="pb-highlight" {...pbField(headingField, preview)}>{heading}</span>
+      ) : (
+        <span class="pb-highlight">{heading}</span>
+      )}
+    </h1>
+  )}
+
+  <GenericBlock data={scalarData} types={types} preview={preview} />
+
+  {areas.map((a) => (
+    <div class="pb-area generic-page__area" {...pbAreaAttrs(a.field, preview)}>
+      <Blocks blocks={a.blocks} preview={preview} />
+    </div>
+  ))}
+</div>
+
+<style>
+  .generic-page {
+    padding-block: var(--pb-section-y);
+    display: flex;
+    flex-direction: column;
+    gap: var(--pb-gap-lg);
+  }
+  .generic-page__area { margin-top: var(--pb-gap-lg); }
+</style>

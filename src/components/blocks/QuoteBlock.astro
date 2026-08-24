@@ -1,0 +1,88 @@
+---
+/**
+ * QuoteBlock — a testimonial.
+ *
+ * The design's dark speech bubble with a green outline, the attribution sitting
+ * outside it. Real <blockquote>/<cite> markup, so it reads as a quotation to
+ * assistive tech rather than as decorated text.
+ */
+import { mediaUrl } from "@paperboycms/client";
+import { pbField } from "../../lib/editing";
+import { img, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const quote = str(data, "quote");
+const source = str(data, "source");
+const image = img(data, "image");
+---
+
+{quote && (
+  <figure class="quote">
+    <blockquote class="quote__bubble">
+      <span class="pb-quote-mark" aria-hidden="true">&#8220;</span>
+      <p {...pbField("quote", preview)}>{quote}</p>
+    </blockquote>
+    <figcaption class="quote__by">
+      {image && (
+        <img
+          class="pb-avatar quote__avatar"
+          src={mediaUrl(image.url, { w: 176, format: "webp" })}
+          alt={image.alt ?? ""}
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+      {source && <cite {...pbField("source", preview)}>{source}</cite>}
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .quote {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 46rem;
+  }
+  .quote__bubble {
+    position: relative;
+    margin: 0;
+    padding: var(--pb-card-pad);
+    border: var(--pb-border-width) solid var(--pb-accent);
+    border-radius: var(--pb-radius-card);
+    background: var(--pb-panel-dark);
+    color: var(--pb-panel-dark-fg);
+    font-size: var(--pb-text-lead);
+  }
+  /* The bubble's tail, drawn with a rotated square so it inherits the border. */
+  .quote__bubble::after {
+    content: "";
+    position: absolute;
+    left: 3.5rem;
+    bottom: -0.65rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: var(--pb-panel-dark);
+    border-right: var(--pb-border-width) solid var(--pb-accent);
+    border-bottom: var(--pb-border-width) solid var(--pb-accent);
+    transform: rotate(45deg);
+  }
+  .quote__by {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-left: 2.5rem;
+  }
+  .quote__avatar { width: 3.5rem; }
+  .quote__by cite {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--pb-muted);
+  }
+</style>

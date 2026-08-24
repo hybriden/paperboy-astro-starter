@@ -1,0 +1,58 @@
+---
+/**
+ * TeaserListBlock — heading, intro, a list of teasers, and a "more" link.
+ *
+ * This is the design's services/case-study grid. The teasers area accepts both
+ * blocks and PAGES, so an editor can hand-pick pages to feature; card fills
+ * alternate by position the way the design does.
+ */
+import { pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
+import SectionHeading from "../SectionHeading.astro";
+import TeaserCard from "../TeaserCard.astro";
+import { teaserFrom, toneFor } from "../../lib/teaser";
+import { area, link, linkLabel, str, type Data } from "../../lib/values";
+
+interface Props {
+  data: Data;
+  preview?: boolean;
+}
+const { data, preview = false } = Astro.props;
+
+const heading = str(data, "heading");
+const intro = str(data, "intro");
+const teasers: AreaBlock[] = area(data, "teasers");
+const more = link(data, "moreLink");
+---
+
+<div>
+  <SectionHeading heading={heading} intro={intro} preview={preview} />
+
+  <div class="pb-grid" {...pbAreaAttrs("teasers", preview)}>
+    {teasers.map((t, i) => {
+      const teaser = teaserFrom(t);
+      return (
+        <TeaserCard
+          href={teaser.href}
+          title={teaser.title}
+          text={teaser.text}
+          image={teaser.image}
+          tone={toneFor(i)}
+        />
+      );
+    })}
+  </div>
+
+  {more && (
+    <p class="teasers__more">
+      <a class="pb-btn" href={more.href} target={more.target ?? undefined}>
+        {linkLabel(more, "See all")}
+      </a>
+    </p>
+  )}
+</div>
+
+<style>
+  .teasers__more {
+    margin-top: var(--pb-gap-lg);
+  }
+</style>

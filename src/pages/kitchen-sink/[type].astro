@@ -1,0 +1,65 @@
+---
+/**
+ * One page template, rendered from its fixture. Dev only, like the index.
+ *
+ * This is also the shortest possible demonstration of how the real route works:
+ * pick a template by content type name, hand it delivered data, done.
+ */
+import Layout from "../../layouts/Base.astro";
+import ArticleListPage from "../../templates/ArticleListPage.astro";
+import ArticlePage from "../../templates/ArticlePage.astro";
+import FaqPage from "../../templates/FaqPage.astro";
+import GenericPage from "../../templates/GenericPage.astro";
+import PersonPage from "../../templates/PersonPage.astro";
+import SectionPage from "../../templates/SectionPage.astro";
+import StartPage from "../../templates/StartPage.astro";
+import { ALL_PAGES } from "../../lib/fixtures";
+
+export const prerender = false;
+
+if (!import.meta.env.DEV) {
+  return new Response("Not found", { status: 404 });
+}
+
+const TEMPLATES: Record<string, any> = {
+  StartPage,
+  SectionPage,
+  ArticlePage,
+  ArticleListPage,
+  FaqPage,
+  PersonPage,
+};
+
+const wanted = Astro.params.type ?? "";
+const entry = ALL_PAGES.find((p) => p.item.type === wanted);
+if (!entry) return new Response(`Unknown fixture: ${wanted}`, { status: 404 });
+
+const Template = TEMPLATES[entry.item.type] ?? GenericPage;
+const preview = Astro.url.searchParams.has("preview");
+const page = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10) || 1;
+---
+
+<Layout title={`Kitchen sink — ${entry.label}`} preview={preview}>
+  <p class="ks-back"><a href="/kitchen-sink">&#8592; All blocks</a> · fixture: {entry.label}</p>
+  <Template
+    data={entry.item.data}
+    types={entry.item.fieldTypes}
+    name={entry.item.name}
+    locale={entry.item.locale}
+    items={entry.items ?? []}
+    page={page}
+    basePath={`/kitchen-sink/${entry.item.type}`}
+    preview={preview}
+  />
+</Layout>
+
+<style>
+  .ks-back {
+    max-width: var(--pb-container);
+    margin: 1rem auto 0;
+    padding-inline: var(--pb-gutter);
+    font-family: var(--pb-font-mono);
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+  }
+</style>

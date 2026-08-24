@@ -1,102 +1,132 @@
 ---
 /**
- * Generic content-area renderer.
+ * Content-area renderer: one block instance in, one rendered section out.
  *
- * There is no per-block-type template here on purpose. Paperboy delivers each
- * item's `fieldTypes` — the declared type of every public field — so a block can
- * be rendered from its SCHEMA rather than by sniffing values. That means a
- * content type you add in the admin tomorrow renders today, and an empty
- * richtext field stays richtext instead of collapsing to a string.
+ * The registry below maps a content type NAME to a component. Every block type
+ * that ships with Paperboy has one; anything else falls through to
+ * GenericBlock, which renders from the delivered schema. That fallback is not a
+ * nicety — content types are data in Paperboy, so a type someone adds in the
+ * admin this afternoon must not render blank on your site.
  *
- * When you want a real design, replace the generic branch with a switch on
- * `b.blockType` and keep this as the fallback so new types never render blank.
+ * To design a new type: write the component, add one line to REGISTRY. Nothing
+ * else in the app needs to know it exists.
  *
- * The `data-pb-*` attributes are the on-page editing contract: they let the
- * admin outline a field in the preview and route a click to the right form
- * input. They are emitted only in preview, so public pages stay marker-free.
+ * The `data-pb-*` markers are emitted here, once, for every block — so each
+ * component stays free of editing plumbing, and a click in the CMS preview is
+ * scoped to the right block. Preview only; public pages carry no markers.
  */
-import { blockData, isRichTextDoc, mediaSrcset, mediaUrl, renderKind, renderRichText, type AreaBlock } from "@paperboycms/client";
+import { blockData, type AreaBlock } from "@paperboycms/client";
 import PaperboyForm from "./PaperboyForm.astro";
+import TeaserCard from "./TeaserCard.astro";
+import AccordionBlock from "./blocks/AccordionBlock.astro";
+import AccordionItemBlock from "./blocks/AccordionItemBlock.astro";
+import BannerBlock from "./blocks/BannerBlock.astro";
+import FaqTopicBlock from "./blocks/FaqTopicBlock.astro";
+import GenericBlock from "./blocks/GenericBlock.astro";
+import HeroBlock from "./blocks/HeroBlock.astro";
+import ImageBlock from "./blocks/ImageBlock.astro";
+import LinkItemBlock from "./blocks/LinkItemBlock.astro";
+import LinkListBlock from "./blocks/LinkListBlock.astro";
+import PersonBlock from "./blocks/PersonBlock.astro";
+import QuestionBlock from "./blocks/QuestionBlock.astro";
+import QuoteBlock from "./blocks/QuoteBlock.astro";
+import TeaserListBlock from "./blocks/TeaserListBlock.astro";
+import TextBlock from "./blocks/TextBlock.astro";
+import VideoBlock from "./blocks/VideoBlock.astro";
+import { pbBlock } from "../lib/editing";
+import { teaserFrom } from "../lib/teaser";
 
 interface Props {
   blocks: AreaBlock[];
   preview?: boolean;
+  /** Nesting depth, so a block cycle cannot render forever. */
+  depth?: number;
 }
-const { blocks, preview = false } = Astro.props;
+const { blocks, preview = false, depth = 0 } = Astro.props;
 
-const isImage = (v: unknown): v is { url: string; alt?: string } =>
-  !!v && typeof v === "object" && typeof (v as { url?: unknown }).url === "string";
+/** Content type name -> component. The one place to register a design. */
+const REGISTRY: Record<string, any> = {
+  HeroBlock,
+  TextBlock,
+  ImageBlock,
+  QuoteBlock,
+  BannerBlock,
+  VideoBlock,
+  TeaserListBlock,
+  AccordionBlock,
+  AccordionItemBlock,
+  FaqTopicBlock,
+  QuestionBlock,
+  PersonBlock,
+  LinkListBlock,
+  LinkItemBlock,
+};
 
-/** Editing markers, only in preview. */
-const fieldAttr = (name: string) => (preview ? { "data-pb-field": name } : {});
+/** Field types for THIS block: inline blocks carry their own, shared blocks
+ *  carry the resolved document's. */
+const typesOf = (b: AreaBlock): Record<string, string> =>
+  (b.shared ? b.content?.fieldTypes : b.fieldTypes) ?? {};
+
+/** The type name to render by — a shared block's real type lives on `content`. */
+const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined) ?? b.blockType;
 ---
 
 {blocks.map((b, i) => {
-  const fields = blockData(b);
-  const types = (b.shared ? b.content?.fieldTypes : b.fieldTypes) ?? {};
+  const type = typeOf(b);
+  const data = blockData(b);
+  const Component = REGISTRY[type];
+  const attrs = pbBlock(i, b.blockType, preview);
 
-  // A FORM is a shared block whose delivered document carries a `form` spec. It
-  // needs real inputs, so it cannot come out of the field loop below.
-  if (b.shared && b.content?.type === "Form" && b.content.form && b.content.documentId) {
+  // A FORM is a shared block whose delivered document carries a `form` spec:
+  // fields, labels, validation rules and the editor's own error copy. It needs
+  // real inputs, so it cannot come out of a field loop.
+  if (b.shared && b.content?.form && b.content.documentId) {
     return (
-      <section class="pb-block pb-block--form" data-pb-block-index={preview ? i : undefined} data-pb-block-type={b.blockType}>
-        <PaperboyForm spec={b.content.form} formId={b.content.documentId} />
+      <section class="pb-block pb-block--form" {...attrs}>
+        <div class="pb-panel">
+          <PaperboyForm spec={b.content.form} formId={b.content.documentId} />
+        </div>
       </section>
     );
   }
 
-  // A PAGE dropped into a content area is delivered with kind "page" and a
-  // urlPath — it renders as a teaser card linking to the page it teases.
+  // A PAGE dropped into an area is a teaser for that page, not a block.
   if (b.shared && b.content?.kind === "page") {
-    const href = b.content.urlPath;
-    if (!href) return null;
-    const title = (typeof fields.title === "string" && fields.title) || b.content.name || "";
+    const teaser = teaserFrom(b);
+    if (!teaser.title && !teaser.text) return null;
     return (
-      <a class="pb-teaser" href={href} data-pb-block-index={preview ? i : undefined} data-pb-block-type={b.blockType}>
-        <strong>{title}</strong>
-      </a>
+      <section class="pb-block pb-block--teaser" {...attrs}>
+        <div class="pb-grid">
+          <TeaserCard href={teaser.href} title={teaser.title} text={teaser.text} image={teaser.image} />
+        </div>
+      </section>
     );
   }
 
   return (
-    <section
-      class={`pb-block pb-block--${(b.blockType ?? "block").toLowerCase()} pb-display--${b.display ?? "automatic"}`}
-      data-pb-block-index={preview ? i : undefined}
-      data-pb-block-type={b.blockType}
-    >
-      {Object.entries(fields).map(([name, value]) => {
-        switch (renderKind(types[name])) {
-          case "richtext":
-            return isRichTextDoc(value) ? <div {...fieldAttr(name)} set:html={renderRichText(value)} /> : null;
-          case "markdown":
-            // Bring your own markdown renderer (marked, markdown-it, remark) and
-            // sanitize its output. Shown as text so the starter has no opinion.
-            return <p {...fieldAttr(name)}>{String(value ?? "")}</p>;
-          case "text": {
-            const text = String(value ?? "");
-            // Heading-ish names get heading weight; everything else is a paragraph.
-            return /title|head(ing)?$/i.test(name)
-              ? <h2 {...fieldAttr(name)}>{text}</h2>
-              : <p {...fieldAttr(name)}>{text}</p>;
-          }
-          default:
-            // Images arrive as an OBJECT ({url, alt, …}), never a bare string.
-            if (isImage(value)) {
-              return (
-                <img
-                  {...fieldAttr(name)}
-                  src={mediaUrl(value.url, { w: 1024, format: "webp" })}
-                  srcset={mediaSrcset(value.url)}
-                  sizes="(max-width: 768px) 100vw, 1024px"
-                  alt={value.alt ?? ""}
-                  loading="lazy"
-                  decoding="async"
-                />
-              );
-            }
-            return null;
-        }
-      })}
+    <section class={`pb-block pb-block--${type.toLowerCase()}`} {...attrs}>
+      {Component ? (
+        <Component data={data} preview={preview} />
+      ) : (
+        <GenericBlock data={data} types={typesOf(b)} preview={preview} depth={depth} />
+      )}
     </section>
   );
 })}
+
+{blocks.length === 0 && preview && (
+  /* An empty area renders no DOM, which in the CMS preview means there is
+     nothing to drop a block onto. Give the editor a target — preview only. */
+  <p class="pb-empty-area">Empty area — drop a block here.</p>
+)}
+
+<style>
+  .pb-empty-area {
+    padding: 2rem;
+    border: 2px dashed var(--pb-muted);
+    border-radius: var(--pb-radius-control);
+    text-align: center;
+    color: var(--pb-muted);
+    font-style: italic;
+  }
+</style>

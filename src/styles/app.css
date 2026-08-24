@@ -1,0 +1,431 @@
+/*
+ * Base styles + the component vocabulary of the Positivus design.
+ *
+ * Deliberately plain CSS with one class per idea, so you can delete or rename
+ * things without fighting a framework. Every value comes from tokens.css.
+ *
+ * The vocabulary is small on purpose, because it maps onto Paperboy's built-in
+ * content types: a section header (green highlight + intro), a bordered card
+ * with the hard shadow, a pill button, a numbered accordion, a dark panel.
+ * Those five ideas render every built-in block type.
+ */
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  /* Painted explicitly: a transparent body borrows whatever is behind it. */
+  background: var(--pb-bg);
+  color: var(--pb-fg);
+  font-family: var(--pb-font);
+  font-size: var(--pb-text-body);
+  line-height: var(--pb-leading);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 500;
+  line-height: var(--pb-leading-tight);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--pb-text-hero); }
+h2 { font-size: var(--pb-text-h2); }
+h3 { font-size: var(--pb-text-h3); }
+h4 { font-size: var(--pb-text-h4); }
+
+p { margin: 0; }
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+:where(a, button, summary, input, textarea, select):focus-visible {
+  outline: 3px solid var(--pb-dark);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------- layout --- */
+
+.pb-container {
+  width: 100%;
+  max-width: var(--pb-container);
+  margin-inline: auto;
+  padding-inline: var(--pb-gutter);
+}
+
+/* Vertical rhythm between blocks in a content area. Owned by the area, not by
+   each block, so a block dropped anywhere inherits the right spacing. */
+.pb-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-section-y);
+}
+
+.pb-block { scroll-margin-top: 6rem; }
+
+/* --------------------------------------------------------------- headings --- */
+
+/* The signature heading: the words sit on a green highlight. Applied to a
+   <span> INSIDE the heading so the highlight hugs the text, not the line box. */
+.pb-highlight {
+  background: var(--pb-accent);
+  color: var(--pb-on-accent);
+  border-radius: var(--pb-radius-chip);
+  padding: 0 0.2em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.pb-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pb-gap-lg);
+  margin-bottom: var(--pb-gap-lg);
+}
+
+.pb-section-head > :first-child { flex: 0 0 auto; }
+
+.pb-section-head__intro {
+  flex: 1 1 22rem;
+  max-width: 48ch;
+  font-size: var(--pb-text-body);
+  color: var(--pb-muted);
+}
+
+.pb-eyebrow {
+  font-size: var(--pb-text-small);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pb-muted);
+}
+
+/* ---------------------------------------------------------------- buttons --- */
+
+.pb-btn {
+  --_bg: var(--pb-dark);
+  --_fg: var(--pb-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.75rem 2.25rem;
+  border: var(--pb-border-width) solid var(--pb-line);
+  border-radius: var(--pb-radius-control);
+  background: var(--_bg);
+  color: var(--_fg);
+  font: inherit;
+  font-size: var(--pb-text-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.pb-btn:hover { background: var(--pb-dark-soft); }
+.pb-btn:active { transform: translateY(1px); }
+
+.pb-btn--accent {
+  --_bg: var(--pb-accent);
+  --_fg: var(--pb-on-accent);
+}
+.pb-btn--accent:hover { background: var(--pb-green-hover); }
+
+.pb-btn--ghost {
+  --_bg: transparent;
+  --_fg: var(--pb-fg);
+}
+.pb-btn--ghost:hover { background: var(--pb-grey); }
+
+.pb-btn--on-dark {
+  --_bg: transparent;
+  --_fg: var(--pb-white);
+  border-color: var(--pb-white);
+}
+.pb-btn--on-dark:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* "Learn more" with the green circle-arrow the design uses inline. */
+.pb-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--pb-text-body);
+  text-decoration: none;
+}
+.pb-arrow-link:hover { text-decoration: underline; }
+
+.pb-arrow-link__dot {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--pb-accent);
+  color: var(--pb-on-accent);
+}
+
+/* ------------------------------------------------------------------ cards --- */
+
+.pb-card {
+  border: var(--pb-border-width) solid var(--pb-line);
+  border-radius: var(--pb-radius-card);
+  background: var(--pb-white);
+  box-shadow: var(--pb-shadow);
+  padding: var(--pb-card-pad);
+}
+
+.pb-card--grey { background: var(--pb-panel); }
+.pb-card--accent { background: var(--pb-accent); }
+.pb-card--dark {
+  background: var(--pb-panel-dark);
+  color: var(--pb-panel-dark-fg);
+}
+.pb-card--flat { box-shadow: none; }
+
+/* A full-bleed grey or dark panel with the card radius — banners, testimonials,
+   the contact section. */
+.pb-panel {
+  border-radius: var(--pb-radius-card);
+  padding: var(--pb-card-pad);
+  background: var(--pb-panel);
+  color: var(--pb-panel-fg);
+}
+.pb-panel--dark {
+  background: var(--pb-panel-dark);
+  color: var(--pb-panel-dark-fg);
+}
+.pb-panel--accent {
+  background: var(--pb-accent);
+  color: var(--pb-on-accent);
+}
+
+.pb-grid {
+  display: grid;
+  gap: var(--pb-gap-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  /* Cards hug their own content. Stretching a row to the tallest card leaves a
+     slab of empty colour under the short ones, which reads as a layout bug. */
+  align-items: start;
+}
+
+.pb-grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr));
+}
+
+/* -------------------------------------------------------------- editorial --- */
+
+/* Rendered richtext/markdown. Scoped so CMS HTML can never restyle the chrome. */
+.pb-prose {
+  font-size: var(--pb-text-body);
+  line-height: 1.65;
+}
+.pb-prose > * + * { margin-top: 1em; }
+.pb-prose h2 { font-size: var(--pb-text-h3); margin-top: 1.6em; }
+.pb-prose h3 { font-size: var(--pb-text-h4); margin-top: 1.4em; }
+.pb-prose a { text-decoration: underline; }
+.pb-prose ul,
+.pb-prose ol { padding-left: 1.4em; }
+.pb-prose li + li { margin-top: 0.35em; }
+.pb-prose img { border-radius: var(--pb-radius-control); }
+.pb-prose blockquote {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  border-left: 4px solid var(--pb-accent);
+  background: var(--pb-grey);
+  border-radius: var(--pb-radius-chip);
+}
+.pb-prose code {
+  font-family: var(--pb-font-mono);
+  font-size: 0.9em;
+  background: var(--pb-grey);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+}
+.pb-prose pre {
+  background: var(--pb-dark);
+  color: var(--pb-white);
+  padding: 1rem 1.25rem;
+  border-radius: var(--pb-radius-control);
+  overflow-x: auto;
+}
+.pb-prose pre code { background: none; color: inherit; }
+.pb-prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pb-prose :is(th, td) {
+  border: 1px solid #d9d9de;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.pb-figure { margin: 0; }
+.pb-figure img {
+  border-radius: var(--pb-radius-card);
+  border: var(--pb-border-width) solid var(--pb-line);
+}
+.pb-figure figcaption {
+  margin-top: 0.75rem;
+  font-size: var(--pb-text-small);
+  color: var(--pb-muted);
+}
+
+/* -------------------------------------------------------------- accordion --- */
+
+/* The numbered "process" list. <details> gives keyboard and screen-reader
+   behaviour for free, so there is no JS here at all. */
+.pb-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pb-gap);
+}
+
+.pb-accordion__item {
+  border: var(--pb-border-width) solid var(--pb-line);
+  border-radius: var(--pb-radius-card);
+  background: var(--pb-panel);
+  box-shadow: var(--pb-shadow);
+  padding: clamp(1.25rem, 1rem + 1vw, 2.5rem);
+}
+.pb-accordion__item[open] { background: var(--pb-accent); }
+
+.pb-accordion__summary {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 0.5rem + 1.5vw, 1.5rem);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--pb-text-h3);
+  font-weight: 500;
+}
+.pb-accordion__summary::-webkit-details-marker { display: none; }
+
+.pb-accordion__number {
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 3.75rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.pb-accordion__toggle {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: var(--pb-border-width) solid var(--pb-line);
+  background: var(--pb-white);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+/* The glyph is CSS, not markup, so it can answer the open state: + to open,
+   minus to close. Decorative either way — the <details> element carries the
+   real state for assistive tech. */
+.pb-accordion__toggle::before { content: "+"; }
+.pb-accordion__item[open] .pb-accordion__toggle::before { content: "2"; }
+
+.pb-accordion__body {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: var(--pb-border-width) solid var(--pb-line);
+}
+
+/* ------------------------------------------------------------------- misc --- */
+
+.pb-quote-mark {
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--pb-accent);
+}
+
+.pb-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: var(--pb-text-small);
+  color: var(--pb-muted);
+}
+
+.pb-tag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border: var(--pb-border-width) solid var(--pb-line);
+  border-radius: 999px;
+  background: var(--pb-accent);
+  font-size: var(--pb-text-small);
+}
+
+.pb-avatar {
+  width: 5.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: var(--pb-border-width) solid var(--pb-line);
+  object-fit: cover;
+}
+
+.pb-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* An empty field renders no box, so in preview it would have no click target.
+   Give it one — preview only (the bridge sets .pb-editing), never in public. */
+body.pb-editing [data-pb-field]:empty {
+  display: block;
+  min-height: 1.4rem;
+  min-width: 8rem;
+  border: 1px dashed var(--pb-muted);
+  border-radius: 4px;
+}
+body.pb-editing [data-pb-field]:empty::after {
+  content: "empty — click to edit";
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--pb-muted);
+}
