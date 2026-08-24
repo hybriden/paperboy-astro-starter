@@ -44,8 +44,12 @@ explains the demo tells you nothing about handling real content, and you cannot
 show it to a stakeholder. `/about` says what it actually is.
 
 `scripts/demo-content.mjs` builds all of it through the Management API — log in,
-instantiate the built-in types, create pages, publish — so it doubles as a worked
-example of automating Paperboy. It leaves your edits alone on restart, and it
+instantiate the built-in types, upload the photographs as assets, create pages,
+publish — so it doubles as a worked example of automating Paperboy. The
+photographs come from Unsplash on first run and are uploaded into your instance
+as real assets, so they go through the CMS's own variant pipeline; with no
+network access the demo builds without them, which is also worth seeing, since
+every template has to look right with an image missing. It leaves your edits alone on restart, and it
 trashes the CMS's own stock demo pages so you get one coherent site rather than
 two overlapping ones.
 
