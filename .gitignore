@@ -6,3 +6,7 @@ dist/
 .env.*.local
 *.tgz
 .DS_Store
+
+# No lockfile committed yet: it is added once @paperboycms/client 0.3.0 and
+# preview 0.3.2 are on npm, so the resolved URLs are real.
+package-lock.json
