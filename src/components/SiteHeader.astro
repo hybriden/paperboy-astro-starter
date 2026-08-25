@@ -27,7 +27,13 @@ const logo = img(data, "logo");
 const menu: AreaBlock[] = area(data, "menuLinks");
 ---
 
-<header class="site-header">
+{/* The sticky header condenses once you have scrolled past the top. This
+    zero-height sentinel is how we know: an IntersectionObserver watching IT
+    fires twice — on the way out and the way back — where a scroll listener
+    would run on every frame of every scroll. */}
+<div class="site-header__sentinel" aria-hidden="true"></div>
+
+<header class="site-header" data-site-header>
   <a class="site-header__skip" href="#main">Skip to content</a>
   <div class="pb-container site-header__inner">
     <a class="site-header__brand" href="/">
@@ -49,9 +55,47 @@ const menu: AreaBlock[] = area(data, "menuLinks");
 </header>
 
 <style>
+  .site-header__sentinel {
+    height: 0;
+  }
+
   .site-header {
     border-bottom: var(--pb-border-width) solid var(--pb-line);
     background: var(--pb-bg);
+    /* Above page content, below the editing overlay the preview bridge injects
+       (99999). The skip link inside keeps its own z-index within this new
+       stacking context. */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  /* Condensed: the brand row gives back height, the nav does NOT give back tap
+     target. Separated by the border it already has rather than a soft shadow —
+     this design is flat with one hard 5px drop, and a blurred shadow here would
+     read as borrowed from somewhere else. */
+  .site-header[data-condensed] .site-header__inner {
+    min-height: 3.25rem;
+  }
+  .site-header[data-condensed] .site-header__wordmark {
+    font-size: var(--pb-text-body);
+  }
+  .site-header[data-condensed] .site-header__logo {
+    height: 1.75rem;
+  }
+
+  .site-header__inner,
+  .site-header__wordmark,
+  .site-header__logo {
+    transition: min-height 140ms ease, font-size 140ms ease, height 140ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header__inner,
+    .site-header__wordmark,
+    .site-header__logo {
+      transition: none;
+    }
   }
   .site-header__inner {
     display: flex;
@@ -118,3 +162,26 @@ const menu: AreaBlock[] = area(data, "menuLinks");
     left: 0;
   }
 </style>
+
+{/* is:inline — fifteen lines do not need a module request, and this must run
+    before first paint so a page opened part-way down (a #anchor, a restored
+    scroll position) starts condensed rather than snapping a frame later.
+
+    No JS means the header stays full height and sticky, which is a fine
+    outcome rather than a broken one. */}
+<script is:inline>
+  (() => {
+    const header = document.querySelector("[data-site-header]");
+    const sentinel = document.querySelector(".site-header__sentinel");
+    if (!header || !sentinel || !("IntersectionObserver" in window)) return;
+
+    new IntersectionObserver(
+      ([entry]) => {
+        // The sentinel sits above the header, so "not visible" means the page
+        // has scrolled past the top.
+        header.toggleAttribute("data-condensed", !entry.isIntersecting);
+      },
+      { threshold: 0 },
+    ).observe(sentinel);
+  })();
+</script>

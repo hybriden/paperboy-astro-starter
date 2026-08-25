@@ -130,6 +130,19 @@ a {
   max-width: 40rem;
 }
 
+/* Anchor targets must clear the sticky header. `scroll-padding-top` on the
+   scroll container covers every target — including a heading inside richtext
+   that no component knows about — where a per-element scroll-margin only covers
+   the elements someone remembered.
+ *
+ * 6rem, matching the .pb-block rule below, because it has to clear the header at
+ * its FULL height: a short jump lands before the header has condensed. Measured
+ * with 4.5rem first, and the target came to rest exactly flush against the bar —
+ * not hidden, but touching it. */
+html {
+  scroll-padding-top: 6rem;
+}
+
 .pb-block { scroll-margin-top: 6rem; }
 
 /* --------------------------------------------------------------- headings --- */
