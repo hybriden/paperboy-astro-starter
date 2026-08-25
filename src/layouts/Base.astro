@@ -25,6 +25,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { cms, type Env } from "../lib/cms";
 import "../styles/app.css";
+import { publicOrigin } from "../lib/public-origin";
 
 interface Props {
   seo?: DeliverySeo | null;
@@ -42,9 +43,9 @@ interface Props {
 }
 const { seo, preview = false, title, env, canonicalPath } = Astro.props;
 
-// Prefer the configured `site` in astro.config.mjs (stable behind proxies and
-// CDNs); fall back to the request origin so the starter works with no config.
-const origin = Astro.site?.origin ?? Astro.url.origin;
+// The origin this site is published on — NOT the one the server saw, which is
+// http:// behind a TLS-terminating proxy. See lib/public-origin.ts.
+const origin = publicOrigin(Astro, env);
 const abs = (path: string) => new URL(path, origin).href;
 const canonical = canonicalPath ? abs(canonicalPath) : seo?.canonicalPath ? abs(seo.canonicalPath) : null;
 

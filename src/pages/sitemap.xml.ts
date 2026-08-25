@@ -1,5 +1,6 @@
 import type { APIContext } from "astro";
 import { fetchPageInventory, fetchStartPageId } from "../lib/cms";
+import { publicOrigin } from "../lib/public-origin";
 
 /**
  * sitemap.xml, built from the CMS's page inventory rather than proxied from it.
@@ -24,7 +25,7 @@ const escape = (s: string) =>
 
 export async function GET(context: APIContext): Promise<Response> {
   const env = (context.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
-  const origin = (context.site?.origin ?? context.url.origin).replace(/\/+$/, "");
+  const origin = publicOrigin(context, env);
 
   const [pages, startId] = await Promise.all([fetchPageInventory(env), fetchStartPageId(env)]);
 

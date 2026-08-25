@@ -110,6 +110,14 @@ your machine, set `PAPERBOY_API_URL=http://host.docker.internal:8091`.
 
 Delivery keys are per **site**, so a multisite instance has a pair per site.
 
+**Deploying behind a proxy?** Set **`PUBLIC_SITE_URL`** to your public origin.
+A TLS-terminating proxy forwards plain HTTP, so the server sees `http://` and the
+URLs this site publishes about itself — `og:url`, every `sitemap.xml` entry,
+`llms.txt` — come out on the wrong scheme. (The canonical tag is fine either way;
+it comes from the CMS's own `canonicalBaseUrl`.) Without it the scheme is read
+from `x-forwarded-proto` and the host from the request, which is right in the
+usual single-proxy case — the variable is for when you would rather not guess.
+
 One optional fifth value: **`PAPERBOY_LOCALE`**. Content in Paperboy is localized
 and a page's URL belongs to a locale — the front page that is `/home` in English
 is `/hjem` in Norwegian — so one route serves one language. Set this to pick which

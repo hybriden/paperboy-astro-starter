@@ -1,5 +1,6 @@
 import type { APIContext } from "astro";
 import { cms, fetchPageInventory, fetchStartPageId } from "../lib/cms";
+import { publicOrigin } from "../lib/public-origin";
 
 /**
  * llms.txt — a plain-text map of the site for language models (llmstxt.org).
@@ -12,7 +13,7 @@ export const prerender = false;
 
 export async function GET(context: APIContext): Promise<Response> {
   const env = (context.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
-  const origin = (context.site?.origin ?? context.url.origin).replace(/\/+$/, "");
+  const origin = publicOrigin(context, env);
 
   const [pages, startId, settings] = await Promise.all([
     fetchPageInventory(env),
