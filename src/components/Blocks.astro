@@ -33,6 +33,7 @@ import QuoteBlock from "./blocks/QuoteBlock.astro";
 import TeaserListBlock from "./blocks/TeaserListBlock.astro";
 import TextBlock from "./blocks/TextBlock.astro";
 import VideoBlock from "./blocks/VideoBlock.astro";
+import { assignAnchors, headingOf } from "../lib/anchor";
 import { pbBlock } from "../lib/editing";
 import { teaserFrom } from "../lib/teaser";
 
@@ -69,6 +70,22 @@ const typesOf = (b: AreaBlock): Record<string, string> =>
 
 /** The type name to render by — a shared block's real type lives on `content`. */
 const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined) ?? b.blockType;
+
+/**
+ * In-page anchor ids, so the link editor's "anchor" field has something to hit.
+ * See lib/anchor.ts for why the id is the heading rather than the block key.
+ *
+ * TOP LEVEL ONLY. A nested area would number its own scope, so an outer section
+ * and a nested one both called "Contact" would each claim id="contact" — and two
+ * elements with one id is worse than a nested section having no anchor. The
+ * nested block sits inside a section that already has one.
+ */
+const anchors = depth === 0 ? assignAnchors(blocks.map((b) => headingOf(blockData(b)))) : blocks.map(() => undefined);
+
+/** The form is the target of its own post-submit redirect (`…#pb-form`), which
+ *  until now pointed at an id nothing had. The FIRST form on the page takes it;
+ *  a second keeps its heading slug, because two elements cannot share an id. */
+let formSeen = false;
 ---
 
 {blocks.map((b, i) => {
@@ -81,8 +98,11 @@ const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined
   // fields, labels, validation rules and the editor's own error copy. It needs
   // real inputs, so it cannot come out of a field loop.
   if (b.shared && b.content?.form && b.content.documentId) {
+    // First form on the page answers to #pb-form; later ones keep their own slug.
+    const formAnchor = depth === 0 && !formSeen ? "pb-form" : anchors[i];
+    formSeen = true;
     return (
-      <section class="pb-block pb-block--form" {...attrs}>
+      <section id={formAnchor} class="pb-block pb-block--form" {...attrs}>
         <div class="pb-panel">
           <PaperboyForm spec={b.content.form} formId={b.content.documentId} />
         </div>
@@ -95,7 +115,7 @@ const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined
     const teaser = teaserFrom(b);
     if (!teaser.title && !teaser.text) return null;
     return (
-      <section class="pb-block pb-block--teaser" {...attrs}>
+      <section id={anchors[i]} class="pb-block pb-block--teaser" {...attrs}>
         <div class="pb-grid">
           <TeaserCard href={teaser.href} title={teaser.title} text={teaser.text} image={teaser.image} headingLevel="h2" />
         </div>
@@ -104,7 +124,7 @@ const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined
   }
 
   return (
-    <section class={`pb-block pb-block--${type.toLowerCase()}`} {...attrs}>
+    <section id={anchors[i]} class={`pb-block pb-block--${type.toLowerCase()}`} {...attrs}>
       {Component ? (
         <Component data={data} preview={preview} />
       ) : (

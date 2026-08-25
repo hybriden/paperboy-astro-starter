@@ -167,6 +167,29 @@ anything else via `GenericBlock`.
 **Globals** — `HeaderSettings` and `FooterSettings` drive the header and footer,
 so navigation is edited as content.
 
+### Linking to a section of a page
+
+Paperboy's link editor has an **anchor** field — "Section on that page" — and the
+CMS appends whatever you type: `faq` becomes `/about#faq`. The CMS cannot know
+what ids a front end emits, so the convention is this app's, and it is:
+
+> **the section's own heading, lowercased, with spaces and punctuation turned
+> into single hyphens.**
+
+"Where projects start" is `#where-projects-start`; "Våre løsninger" is
+`#vare-losninger` (Norwegian letters are transliterated, not stripped). Two
+sections with the same heading get `-2`, `-3`. A section with no heading gets no
+anchor, because a positional id would move the moment blocks were reordered.
+
+One consequence to know: **renaming a heading renames its anchor**, so a link
+pointing at the old one stops jumping. The alternative was to key anchors off the
+block's internal id, which never rots but which nobody can type into that field —
+and an anchor you cannot type is a feature that does not work. If you need one
+that never moves, the block is a section: give it a stable heading.
+
+The contact form also answers to `#pb-form`, which is where a no-JavaScript
+submit redirects back to.
+
 ### Adding your own
 
 A new block type is one component and one line:
