@@ -71,6 +71,17 @@ a {
   border-radius: 4px;
 }
 
+/* The ring is the ink colour, which is also the colour of every dark panel — so
+   on the footer and inside the dark banner a keyboard user had NO visible focus
+   at all. Same ring, inverted, wherever the ground is dark. */
+.pb-panel-dark :where(a, button, summary):focus-visible,
+.pb-panel--dark :where(a, button, summary):focus-visible,
+.pb-card--dark :where(a, button, summary):focus-visible,
+.site-footer :where(a, button, summary):focus-visible,
+.pb-banner--image :where(a, button, summary):focus-visible {
+  outline-color: var(--pb-white);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *,
@@ -142,7 +153,15 @@ a {
   margin-bottom: var(--pb-gap-lg);
 }
 
-.pb-section-head > :first-child { flex: 0 0 auto; }
+/* SHRINKABLE. `flex: 0 0 auto` held the heading at its max-content width, so on
+   a 390px phone "Three ways we usually help" measured 434px and took the whole
+   document with it: scrollWidth 450 against a 390 viewport, the last word off
+   the screen, every page scrolling sideways. Any editor typing a longer heading
+   hit the same thing. */
+.pb-section-head > :first-child {
+  flex: 0 1 auto;
+  min-width: 0;
+}
 
 .pb-section-head__intro {
   flex: 1 1 22rem;

@@ -97,7 +97,7 @@ const typeOf = (b: AreaBlock): string => (b.shared ? b.content?.type : undefined
     return (
       <section class="pb-block pb-block--teaser" {...attrs}>
         <div class="pb-grid">
-          <TeaserCard href={teaser.href} title={teaser.title} text={teaser.text} image={teaser.image} />
+          <TeaserCard href={teaser.href} title={teaser.title} text={teaser.text} image={teaser.image} headingLevel="h2" />
         </div>
       </section>
     );

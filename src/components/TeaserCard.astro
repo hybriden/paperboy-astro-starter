@@ -22,9 +22,20 @@ interface Props {
   /** Cycled by grids so a row of cards alternates like the design does. */
   tone?: "white" | "grey" | "accent" | "dark";
   eyebrow?: string;
+  /**
+   * h3 inside a TeaserListBlock, which brings its own h2 — but h2 when the cards
+   * sit straight under a page's h1, as they do on a list page. axe reports the
+   * skip, and a screen-reader user navigating by heading loses a level.
+   *
+   * NOT called `as`: a prop with that name puts Astro into polymorphic-component
+   * typing, and `Astro.props` silently becomes `any` — which showed up here only
+   * because `tone` is used to index an object literal.
+   */
+  headingLevel?: "h2" | "h3";
 }
 
-const { href, title, text = "", image = null, tone = "white", eyebrow = "" } = Astro.props;
+const { href, title, text = "", image = null, tone = "white", eyebrow = "", headingLevel = "h3" } = Astro.props;
+const Heading = headingLevel;
 
 const toneClass = {
   white: "",
@@ -55,7 +66,7 @@ const Tag = href ? "a" : "div";
     />
   )}
   {eyebrow && <p class="pb-eyebrow">{eyebrow}</p>}
-  <h3 class="pb-teaser__title">{title}</h3>
+  <Heading class="pb-teaser__title">{title}</Heading>
   {text && <p class="pb-teaser__text">{text}</p>}
   {href && (
     <span class="pb-arrow-link pb-teaser__more">

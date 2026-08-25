@@ -61,6 +61,7 @@ const toneFor = (item: (typeof shown)[number], i: number) =>
           text={firstStr(item.data as Data, ["teaserText", "intro", "summary"])}
           image={teaserImage(item)}
           tone={toneFor(item, i)}
+          headingLevel="h2"
         />
       ))}
     </div>

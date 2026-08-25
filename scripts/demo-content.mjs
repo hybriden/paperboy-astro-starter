@@ -195,7 +195,13 @@ async function setData(id, type, name, data) {
  * create": that way pointing this at an instance that has real content in it
  * cannot quietly delete it.
  */
-const STOCK_SEED_ROOTS = ["Home", "Blog", "Author Zone", "Secret draft", "Hjem", "Shared card"];
+// The NAMES, taken from packages/db/src/seed.ts — not from what the seed PRINTS.
+// Two of these were the console labels ("Secret draft", "Shared card") rather
+// than the content names, so they never matched: the admin tree opened with a
+// draft called "Unpublished — should never appear publicly" sitting above
+// Services, and Shared Blocks still listed a stray CardBlock.
+const STOCK_SEED_ROOTS = ["Home", "Blog", "Author Zone", "Top Secret (draft)", "Hjem"];
+const STOCK_SEED_BLOCKS = ["Featured Card"];
 
 async function removeStockSeedPages() {
   const tree = await call("GET", "/manage/content/tree");
@@ -208,6 +214,17 @@ async function removeStockSeedPages() {
     if (res.ok) trashed += res.json?.trashed ?? 1;
     else log(`could not trash "${node.name}": ${res.status} ${res.text.slice(0, 120)}`);
   }
+  // Shared blocks are not in the page tree; they have their own list.
+  const blocks = await call("GET", "/manage/blocks");
+  if (blocks.ok && Array.isArray(blocks.json)) {
+    for (const block of blocks.json) {
+      if (!STOCK_SEED_BLOCKS.includes(block?.name ?? "")) continue;
+      const res = await call("DELETE", `/manage/content/${block.documentId}`);
+      if (res.ok) trashed += res.json?.trashed ?? 1;
+      else log(`could not trash block "${block.name}": ${res.status} ${res.text.slice(0, 120)}`);
+    }
+  }
+
   if (trashed) log(`trashed ${trashed} stock-seed item(s) — one site here, not two`);
 }
 
@@ -432,7 +449,7 @@ const SERVICES = [
     name: "Web development",
     photo: "deviceCheck",
     figure: "pairing",
-    caption: "Pairing on the front end, where most of the performance work happens.",
+    caption: "Two people, one screen. Most of our front-end work looks like this.",
     teaser: "Fast sites that editors can change without opening a ticket.",
     intro: "Front ends that load quickly, meet WCAG, and hand real control to the people who write the words.",
     body: [
@@ -484,6 +501,8 @@ const ARTICLES = [
   {
     name: "Accessibility is a content problem too",
     intro: "You can ship a perfect component library and still fail an audit on link text.",
+    // The pull-quote below used to repeat this paragraph's own statistic, three
+    // inches apart and in two voices.
     author: "Jonas Berg",
     date: "2026-03-11T09:00:00.000Z",
     photo: "whiteboard",
@@ -539,6 +558,12 @@ async function main() {
   await setSiteName("Nordlys Studio");
   const photo = await uploadPhotos();
 
+  // The start page is CREATED first and filled in at the end. Children append at
+  // the bottom of a manually-sorted tree, so building it last — which is what it
+  // needs, since its hero links to pages that do not exist yet — left the admin
+  // tree opening with the home page underneath everything else.
+  const home = await page("StartPage", "Nordlys Studio", { heading: "Nordlys Studio" });
+
   // --- a SHARED block, referenced by several pages --------------------------
   // One document, placed in three content areas: edit it once and every page
   // carrying it changes. This is what a shared block is FOR, and it is invisible
@@ -555,7 +580,7 @@ async function main() {
   // --- services: a parent page with three children --------------------------
   const services = await page("SectionPage", "Services", {
     heading: "What we do",
-    intro: "Three things, and the part of each that clients usually need first.",
+    intro: "What we actually do, and the part of each that clients usually need first.",
     teaserTitle: "Services",
     teaserText: "Design systems, front-end development, and getting editorial teams self-sufficient.",
   });
@@ -707,7 +732,7 @@ async function main() {
       teaserImage: photo[ARTICLES[2].photo],
       mainArea: [
         b("QuoteBlock", {
-          quote: "Twelve links called read more, and every one of them passed our old checklist.",
+          quote: "The audit did not fail on our code. It failed on words we had approved ourselves.",
           source: "An audit we would rather not repeat",
         }),
       ],
@@ -786,7 +811,7 @@ async function main() {
         image: photo.jonas,
         firstName: "Jonas",
         lastName: "Berg",
-        workTitle: "Front-end lead",
+        workTitle: "Lead developer",
         email: "jonas@nordlys.example",
       }),
       b("ImageBlock", {
@@ -852,8 +877,8 @@ async function main() {
     mainArea: [ref("Form", form)],
   });
 
-  // --- the start page -------------------------------------------------------
-  const home = await page("StartPage", "Nordlys Studio", {
+  // --- the start page, filled in now that everything it links to exists ------
+  await setData(home, "StartPage", "Nordlys Studio", {
     heading: "Nordlys Studio",
     mainArea: [
       b("HeroBlock", {

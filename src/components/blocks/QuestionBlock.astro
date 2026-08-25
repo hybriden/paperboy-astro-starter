@@ -14,15 +14,17 @@ import { rich, str, type Data } from "../../lib/values";
 interface Props {
   data: Data;
   preview?: boolean;
+  /** Open on load. The editor is always shown every answer. */
+  open?: boolean;
 }
-const { data, preview = false } = Astro.props;
+const { data, preview = false, open = false } = Astro.props;
 
 const question = str(data, "question");
 const answer = rich(data, "answer");
 ---
 
 {(question || answer) && (
-  <details class="pb-accordion__item" open={preview}>
+  <details class="pb-accordion__item" open={preview || open}>
     <summary class="pb-accordion__summary question__summary">
       <span {...pbField("question", preview)}>{question}</span>
       <span class="pb-accordion__toggle" aria-hidden="true"></span>

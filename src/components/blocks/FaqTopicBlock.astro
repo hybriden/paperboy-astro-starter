@@ -2,8 +2,9 @@
 /**
  * FaqTopicBlock — a named group of questions.
  *
- * The topic is an h3 because it sits under the FAQ page's own h1; keeping the
- * outline intact is what lets a screen-reader user jump between topics.
+ * The topic is an h2: it sits directly under the FAQ page's own h1, and an h3
+ * there skips a level. Keeping the outline intact is what lets a screen-reader
+ * user jump between topics.
  */
 import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
 import QuestionBlock from "./QuestionBlock.astro";
@@ -22,13 +23,16 @@ const questions: AreaBlock[] = area(data, "questions");
 
 <section class="faq-topic">
   {topic && (
-    <h3 class="faq-topic__title">
+    <h2 class="faq-topic__title">
       <span class="pb-highlight" {...pbField("topic", preview)}>{topic}</span>
-    </h3>
+    </h2>
   )}
   <div class="pb-accordion" {...pbAreaAttrs("questions", preview)}>
-    {questions.map((q) => (
-      <QuestionBlock data={blockData(q)} preview={preview} />
+    {questions.map((q, i) => (
+      /* The first answer of each topic is open, so the page shows what is inside
+         it rather than five closed bars — the same call the home page's
+         accordion makes for its first row. */
+      <QuestionBlock data={blockData(q)} preview={preview} open={i === 0} />
     ))}
   </div>
 </section>

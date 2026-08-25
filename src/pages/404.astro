@@ -2,7 +2,19 @@
 import Layout from "../layouts/Base.astro";
 export const prerender = false;
 ---
+
 <Layout title="Not found">
-  <h1>Not found</h1>
-  <p>That page doesn't exist. <a href="/">Back to the start page</a>.</p>
+  {/* The container is this page's own job: <main> has no padding, because every
+      template supplies its own. Without it the heading sat flush against the
+      left edge of the window, which reads as an unstyled error page. */}
+  <div class="pb-container not-found">
+    <h1>Not found</h1>
+    <p>That page doesn't exist. <a href="/">Back to the start page</a>.</p>
+  </div>
 </Layout>
+
+<style>
+  .not-found {
+    padding-block: var(--pb-section-y);
+  }
+</style>

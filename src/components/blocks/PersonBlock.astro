@@ -13,10 +13,14 @@ import { img, str, type Data } from "../../lib/values";
 interface Props {
   data: Data;
   preview?: boolean;
-  /** h3 inside a page that already has an h1/h2 above it. */
-  as?: "h2" | "h3";
+  /**
+   * h2 when the card sits straight under a page h1, which is the usual case.
+   * Not called `as` — see the note in TeaserCard.astro: that name turns
+   * `Astro.props` into `any` for the whole component.
+   */
+  headingLevel?: "h2" | "h3";
 }
-const { data, preview = false, as = "h3" } = Astro.props;
+const { data, preview = false, headingLevel = "h2" } = Astro.props;
 
 const image = img(data, "image");
 const first = str(data, "firstName");
@@ -26,7 +30,7 @@ const workTitle = str(data, "workTitle");
 const department = str(data, "department");
 const email = str(data, "email");
 const phone = str(data, "phone");
-const Tag = as;
+const Tag = headingLevel;
 ---
 
 <article class="person pb-card">
@@ -107,5 +111,11 @@ const Tag = as;
     gap: 0.35rem;
     font-size: var(--pb-text-small);
   }
-  .person__contact a { text-decoration: underline; }
+  .person__contact a {
+    text-decoration: underline;
+    /* 24px minimum target (WCAG 2.5.8): the link is a control in a list, not a
+       word inside a sentence, so the inline exemption does not apply. */
+    display: inline-block;
+    padding-block: 0.2rem;
+  }
 </style>
