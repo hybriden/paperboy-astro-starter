@@ -90,10 +90,50 @@ const menu: AreaBlock[] = area(data, "menuLinks");
     transition: min-height 140ms ease, font-size 140ms ease, height 140ms ease;
   }
 
+  /* On a phone the brand and the nav cannot share a row — "Nordlys Studio" plus
+     six links needs ~395px of a 358px line — so the header is two rows and a
+     sticky 93px, 11% of the viewport. Scrolled, the brand collapses out of the
+     way and the nav becomes the whole bar: ~46px.
+
+     max-width rather than display:none, because none cannot be animated. The
+     visibility flip is delayed until the width has finished collapsing, which is
+     what takes it out of the tab order without it vanishing mid-animation.
+
+     The trade: on a scrolled phone there is no logo to click for home. This site
+     has a Home item in the menu; a site without one keeps its brand a scroll
+     away, which is the same gesture as reaching any other chrome. */
+  @media (max-width: 700px) {
+    .site-header__brand {
+      max-width: 14rem;
+      opacity: 1;
+      visibility: visible;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: max-width 180ms ease, opacity 120ms ease, visibility 0s;
+    }
+    .site-header[data-condensed] .site-header__brand {
+      max-width: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: max-width 180ms ease, opacity 100ms ease, visibility 0s linear 180ms;
+    }
+    /* Tighter, but still a 24px+ target (WCAG 2.5.8): 0.35rem of padding on a
+       ~20px line is ~34px. The nav is what is left of the header here, so this
+       is the last place to take space from. */
+    .site-header[data-condensed] .site-header__menu :global(a) {
+      padding-block: 0.35rem;
+    }
+    .site-header[data-condensed] .site-header__inner {
+      min-height: 0;
+      gap: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .site-header__inner,
     .site-header__wordmark,
-    .site-header__logo {
+    .site-header__logo,
+    .site-header__brand {
       transition: none;
     }
   }
