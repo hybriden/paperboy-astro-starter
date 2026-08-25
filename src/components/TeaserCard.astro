@@ -107,6 +107,15 @@ const Tag = href ? "a" : "div";
     object-position: 50% 30%;
     border-radius: calc(var(--pb-radius-card) - 1px) calc(var(--pb-radius-card) - 1px) 0 0;
   }
+  /* A card's type size is a property of the CARD, not of where the card sits in
+     the document outline. Without this the title inherited the global h2 size
+     the moment the heading level was raised for list pages: 40px in a 271px
+     column, so "Why we stopped building bespoke admin screens" wrapped to six
+     lines — one word each — and the cards beside it opened 144px of dead space
+     to stay level with it. */
+  .pb-teaser__title {
+    font-size: var(--pb-text-h3);
+  }
   .pb-teaser__text {
     color: inherit;
     opacity: 0.85;

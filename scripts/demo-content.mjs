@@ -291,7 +291,7 @@ const PHOTOS = {
   officeEmpty: {
     id: "1497366754035-f200968a6e72",
     crop: "w=1600&h=900",
-    alt: "An empty open-plan office with glass partitions and a long shared desk",
+    alt: "An empty office corridor of glass-partitioned rooms, with a sofa at the far end",
   },
   // /about. Replaces a corporate high-five, which is the most parodied genre in
   // stock photography and sat directly under copy about not overselling.
@@ -580,7 +580,7 @@ async function main() {
   // --- services: a parent page with three children --------------------------
   const services = await page("SectionPage", "Services", {
     heading: "What we do",
-    intro: "What we actually do, and the part of each that clients usually need first.",
+    intro: "Design systems, front-end development, and getting an editorial team self-sufficient.",
     teaserTitle: "Services",
     teaserText: "Design systems, front-end development, and getting editorial teams self-sufficient.",
   });
@@ -746,7 +746,7 @@ async function main() {
       questions: [
         b("QuestionBlock", {
           question: "How do projects usually start?",
-          answer: rt("With a discovery week. We interview the people who publish, model the content, and hand over a plan and an estimate. If you take it elsewhere, that is fine — you own it."),
+          answer: rt("With a discovery week, at a fixed price. You own everything that comes out of it, including the estimate — several clients have taken it to another studio, which is a fair outcome for both of us."),
         }),
         b("QuestionBlock", {
           question: "Can you work with our existing team?",
@@ -790,7 +790,7 @@ async function main() {
 
   const about = await page("SectionPage", "About", {
     heading: "About Nordlys Studio",
-    intro: "Two people in Oslo who build content-led sites and then teach the team to run them.",
+    intro: "A small studio in Oslo that builds content-led sites and then teaches the team to run them.",
     body: rt(
       "We started in 2019, after too many projects where the site launched beautifully and then froze, because changing a sentence needed a developer.",
       "An honest note: Nordlys Studio does not exist. Every page on this site is demo content for the Paperboy CMS, created through its Management API by scripts/demo-content.mjs when this stack first started — which makes that script a decent worked example if you want to automate the CMS yourself.",
@@ -900,7 +900,7 @@ async function main() {
         items: [
           b("AccordionItemBlock", {
             heading: "Discovery week",
-            body: rt("Interviews with the people who publish, a content model on paper, and an estimate. Fixed price, and yours to take elsewhere."),
+            body: rt("Five days, on site where we can be. Two of us, your editors, and whoever owns the budget in the room for the first afternoon."),
             expanded: true,
           }),
           b("AccordionItemBlock", {
@@ -914,7 +914,7 @@ async function main() {
         ],
       }),
       b("QuoteBlock", {
-        quote: "A correction used to take three weeks and a developer. Now the desk publishes it themselves before lunch.",
+        quote: "A correction used to take three weeks and a developer. Now the comms team publishes it themselves before lunch.",
         source: "Head of communications, a public-sector client",
       }),
       ref("BannerBlock", cta),

@@ -276,6 +276,14 @@ a {
   background: var(--pb-panel);
   color: var(--pb-panel-fg);
 }
+/* The grey panel was the one light surface on the site without the outline and
+   the 5px shadow every other light surface carries — which made the contact form
+   look like it belonged to a different design. Dark panels keep their edgeless
+   look: the ground does the separating there. */
+.pb-panel:not(.pb-panel--dark):not(.pb-banner--image) {
+  border: var(--pb-border-width) solid var(--pb-line);
+  box-shadow: var(--pb-shadow);
+}
 .pb-panel--dark {
   background: var(--pb-panel-dark);
   color: var(--pb-panel-dark-fg);
