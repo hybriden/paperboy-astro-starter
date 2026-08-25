@@ -87,7 +87,9 @@ const menu: AreaBlock[] = area(data, "menuLinks");
   .site-header__inner,
   .site-header__wordmark,
   .site-header__logo {
-    transition: min-height 140ms ease, font-size 140ms ease, height 140ms ease;
+    /* gap only ever changes on a phone (below), but the transition belongs with
+       the others rather than in a second declaration for the same element. */
+    transition: min-height 140ms ease, font-size 140ms ease, height 140ms ease, gap 180ms ease;
   }
 
   /* On a phone the brand and the nav cannot share a row — "Nordlys Studio" plus
@@ -105,17 +107,24 @@ const menu: AreaBlock[] = area(data, "menuLinks");
   @media (max-width: 700px) {
     .site-header__brand {
       max-width: 14rem;
+      max-height: 4rem;
       opacity: 1;
       visibility: visible;
       overflow: hidden;
       white-space: nowrap;
-      transition: max-width 180ms ease, opacity 120ms ease, visibility 0s;
+      transition: max-width 180ms ease, max-height 180ms ease, opacity 120ms ease, visibility 0s;
     }
+    /* Both dimensions, because max-width alone only stops it taking WIDTH — the
+       flex row it sits in kept its height, so the collapse depended on the zero
+       width letting it share the nav's line. Collapsing the height too means the
+       row is gone either way, and the nav slides up continuously instead of
+       popping when the flex line re-breaks. */
     .site-header[data-condensed] .site-header__brand {
       max-width: 0;
+      max-height: 0;
       opacity: 0;
       visibility: hidden;
-      transition: max-width 180ms ease, opacity 100ms ease, visibility 0s linear 180ms;
+      transition: max-width 180ms ease, max-height 180ms ease, opacity 100ms ease, visibility 0s linear 180ms;
     }
     /* Tighter, but still a 24px+ target (WCAG 2.5.8): 0.35rem of padding on a
        ~20px line is ~34px. The nav is what is left of the header here, so this
@@ -178,6 +187,13 @@ const menu: AreaBlock[] = area(data, "menuLinks");
       max-width: 100%;
       overflow-x: auto;
       scrollbar-width: none;
+      /* The menu owns its own row here, at rest AND condensed. This is what
+         keeps it still: `space-between` hands a row's leftover width to the gaps
+         BETWEEN items, so the moment the brand shrank to nothing the row had
+         5px spare and put all of it in front of the menu — the whole thing slid
+         right as you started scrolling. A nav that always fills its row leaves
+         nothing to redistribute. */
+      flex: 1 1 100%;
     }
     .site-header__nav::-webkit-scrollbar { display: none; }
     .site-header__menu {
