@@ -10,8 +10,13 @@
  *
  * Why a fictional company rather than pages about Paperboy: a demo whose every
  * page explains the demo shows nothing about handling real content, and you
- * cannot show it to a stakeholder. The explanation of how it was built lives on
- * /about, where someone can go looking for it.
+ * cannot show it to a stakeholder. The disclosure that it IS a demo lives in
+ * the footer — on every page, without breaking the fiction anywhere else.
+ *
+ * The copy follows one rule the first draft broke on every surface: at most one
+ * memorable line per page, and plain declarative sentences everywhere else. A
+ * site where every string lands a wry little twist reads as one blogger
+ * performing — the register a reader now files under "generated".
  *
  * It talks to the Management API exactly as a person would — log in, instantiate
  * the built-in type templates, create pages, publish them — so it doubles as a
@@ -82,9 +87,14 @@ async function call(method, path, body) {
 
 // ------------------------------------------------------------------ helpers ---
 
-const rt = (...paragraphs) => ({
+/** A richtext doc: strings become paragraphs, `{h2:"…"}` markers subheadings. */
+const rt = (...parts) => ({
   type: "doc",
-  content: paragraphs.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })),
+  content: parts.map((p) =>
+    typeof p === "string"
+      ? { type: "paragraph", content: [{ type: "text", text: p }] }
+      : { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: p.h2 }] },
+  ),
 });
 
 let blockKey = 0;
@@ -437,13 +447,13 @@ const SERVICES = [
     teaser: "One set of components, documented, that survives the next redesign.",
     intro: "We build the component library, write down the rules, and leave your team able to extend it.",
     body: [
-      "Most design systems fail quietly: the library exists, but nobody can find the right component, so people paste a div and move on. We treat documentation and naming as part of the deliverable rather than an afterthought.",
+      "A design system earns its keep when the next person can find the right component faster than they could paste a new one. That is a naming and documentation problem as much as a design problem, so we treat both as part of the deliverable.",
       "You get tokens, components, usage notes and a review checklist — in your repository, not ours.",
     ],
     quote: "The component list stopped growing once people could find what already existed.",
-    quoteSource: "Design lead, retail client",
+    quoteSource: "Design lead, retail chain",
     extra:
-      "Typical engagement: six to ten weeks, ending with two of your developers shipping new components without us in the room.",
+      "A typical engagement runs six to ten weeks, and ends with your own developers shipping new components unaided.",
   },
   {
     name: "Web development",
@@ -454,12 +464,12 @@ const SERVICES = [
     intro: "Front ends that load quickly, meet WCAG, and hand real control to the people who write the words.",
     body: [
       "We build with whatever framework your team already knows, against a headless CMS, so content and code can move at different speeds.",
-      "Performance and accessibility are checked in CI, because anything checked by hand eventually is not.",
+      "Performance and accessibility are checked in CI on every pull request, so they hold after launch instead of eroding release by release.",
     ],
-    quote: "The site got faster after launch, which in our experience never happens.",
+    quote: "The site has got faster since launch, not slower — that has never happened here before.",
     quoteSource: "CTO, membership organisation",
     extra:
-      "We work to a performance budget agreed up front, and the build fails when a page exceeds it. Arguments about speed then happen before merge instead of after launch.",
+      "We work to a performance budget agreed up front, and the build fails when a page exceeds it — so regressions are caught in review rather than in production.",
   },
   {
     name: "Content operations",
@@ -484,7 +494,10 @@ const ARTICLES = [
     photo: "scaffold",
     body: [
       "Every rebuild starts with an argument about frameworks and ends with the same realisation: the hard part was never the rendering. It was that nobody could say what a page actually is.",
+      "That is rarely anyone's fault. Sites grow by copying: a campaign needs a landing page, the landing page needs one extra field, and the quickest route is a new page type that is almost — but not quite — one that already exists. Five years of that and the CMS holds forty types, a dozen of them load-bearing, and nobody is sure which dozen.",
+      { h2: "Model the nouns, not the layouts" },
       "Model the things your organisation genuinely talks about — a course, a product, a person — and give each the fields it really has. Resist the page type that exists because one campaign needed a third column.",
+      "The test for a good model is unglamorous: can an editor say, without asking anyone, where a new piece of content belongs? When the answer is yes, the next redesign is a re-skin. When it is no, the next redesign is a migration.",
     ],
   },
   {
@@ -495,7 +508,8 @@ const ARTICLES = [
     photo: "deskOverhead",
     body: [
       "We used to build editing interfaces for clients. They were lovely for a year and then became the thing nobody wanted to touch, because whoever wrote them had moved on.",
-      "A CMS that lets editors compose pages from blocks removes most of the reason to build one at all.",
+      "The economics never worked. An editing interface is a product: it needs design, error states, onboarding and maintenance, and it competes for all of that with the site it exists to serve. Budgets fund the site; the admin screens live off the scraps.",
+      "A CMS that lets editors compose pages from blocks removes most of the reason to build one. The effort moves into the content model and the block library — which, unlike a bespoke admin, survive a change of agency and framework alike.",
     ],
   },
   {
@@ -519,6 +533,8 @@ const ARTICLES = [
     photo: "archive",
     body: [
       "The instinct is a big-bang migration over a weekend. The alternative is duller and much safer: migrate one type at a time, run both systems behind the same URLs, and move traffic as each type finishes.",
+      "Order matters more than tooling. We started with press releases — high volume, simple shape, nobody's favourite — so the pipeline had processed two thousand pages before it touched anything the editors were protective of.",
+      "The routing is the part people worry about, and the part that turns out to be small: a reverse proxy that knows which types have moved, and redirects kept in the CMS where editors can see them.",
       "It took eleven weeks instead of one weekend, and nothing was ever down.",
     ],
   },
@@ -540,6 +556,7 @@ const ARTICLES = [
     body: [
       "Agree three numbers before the work starts, and write down what a bad result would look like. It is the only way to have a useful conversation in month four.",
       "For editorial sites ours are usually: how long a correction takes to publish, the share of pages editors can change unaided, and how slowly the heaviest template loads on a mid-range phone.",
+      "None of these is a business metric, and that is deliberate. Traffic and conversion move for a dozen reasons a redesign cannot claim credit for; the three above move only when the work did what it promised.",
     ],
   },
 ];
@@ -569,8 +586,8 @@ async function main() {
   // carrying it changes. This is what a shared block is FOR, and it is invisible
   // unless a demo actually reuses one.
   const cta = await page("BannerBlock", "Shared CTA banner", {
-    heading: "Thinking about a rebuild?",
-    text: "We run a paid discovery week: you get a content model, a plan and an estimate you can take anywhere.",
+    heading: "Start with a discovery week",
+    text: "One week, fixed price. You leave with a content model, a delivery plan and an estimate — yours to use however you like.",
     link: { href: "/contact", text: "Book a discovery week" },
     // With a background image the panel goes dark and gains a scrim, so the
     // text keeps its contrast whatever the photograph looks like.
@@ -622,12 +639,12 @@ async function main() {
   // pages it exists to introduce.
   await setData(services, "SectionPage", "Services", {
     heading: "What we do",
-    intro: "Three things, and the part of each that clients usually need first.",
+    intro: "Design systems, front-end development and content operations. Each stands alone; most engagements combine two.",
     teaserTitle: "Services",
     teaserText: "Design systems, front-end development, and getting editorial teams self-sufficient.",
     mainArea: [
       b("TeaserListBlock", {
-        heading: "Three ways we usually help",
+        heading: "Where to start",
         intro: "Most projects start with one of these and grow into another.",
         teasers: serviceIds.map((id) => ref("SectionPage", id)),
         moreLink: { href: "/contact", text: "Talk to us about a project" },
@@ -638,13 +655,13 @@ async function main() {
   // --- the journal ----------------------------------------------------------
   const journal = await page("ArticleListPage", "Journal", {
     heading: "Journal",
-    intro: "Notes on content modelling, front-end work, and the parts of this job nobody writes down.",
+    intro: "Notes from our work on content modelling, front-end development and editorial operations.",
     listedType: "ArticlePage",
     // Three per page against six articles, so pagination is something you can
     // see and click — not a feature the copy claims and the page never shows.
     pageSize: 3,
     teaserTitle: "Journal",
-    teaserText: "Six pieces on modelling, migration and editorial work.",
+    teaserText: "Writing on content modelling, migration and editorial work.",
   });
 
   const articleIds = [];
@@ -680,7 +697,6 @@ async function main() {
     workTitle: "Principal consultant",
     department: "Content strategy",
     email: "ingrid@nordlys.example",
-    phone: "+47 900 00 000",
     bio: rt(
       "Ingrid works on content models and the awkward conversations that come with them: which page types to delete, who owns a field, and what happens to the archive.",
       "Before Nordlys she ran editorial operations for a national broadcaster.",
@@ -696,10 +712,9 @@ async function main() {
     workTitle: "Lead developer",
     department: "Engineering",
     email: "jonas@nordlys.example",
-    phone: "+47 900 00 001",
     bio: rt(
       "Jonas builds the front ends and the pipelines that keep them honest: performance budgets that fail the build, and accessibility checks that run on every pull request.",
-      "He has migrated more legacy archives than he would like to talk about.",
+      "Before Nordlys he was lead developer at a national media group.",
     ),
   });
 
@@ -731,9 +746,10 @@ async function main() {
       mainImage: photo[ARTICLES[2].photo],
       teaserImage: photo[ARTICLES[2].photo],
       mainArea: [
+        // A pull quote of the article's own thesis carries no attribution — a
+        // quip in the source slot reads as a joke where a citation belongs.
         b("QuoteBlock", {
           quote: "The audit did not fail on our code. It failed on words we had approved ourselves.",
-          source: "An audit we would rather not repeat",
         }),
       ],
     });
@@ -746,7 +762,7 @@ async function main() {
       questions: [
         b("QuestionBlock", {
           question: "How do projects usually start?",
-          answer: rt("With a discovery week, at a fixed price. You own everything that comes out of it, including the estimate — several clients have taken it to another studio, which is a fair outcome for both of us."),
+          answer: rt("With a discovery week, at a fixed price. Everything it produces is yours — the content model, the plan and the estimate — whether or not we do the build."),
         }),
         b("QuestionBlock", {
           question: "Can you work with our existing team?",
@@ -767,7 +783,7 @@ async function main() {
         }),
         b("QuestionBlock", {
           question: "Do you offer support afterwards?",
-          answer: rt("A retainer if you want one, but the goal is that you do not need it. We would rather be hired again for something new."),
+          answer: rt("A retainer if you want one. Most clients keep a small one for the first six months and let it lapse once their team is confident."),
         }),
       ],
     }),
@@ -775,7 +791,7 @@ async function main() {
 
   const faq = await page("FaqPage", "FAQ", {
     heading: "Frequently asked questions",
-    intro: "What clients ask before signing anything.",
+    intro: "The questions most clients ask before a first meeting.",
     teaserTitle: "Questions and answers",
     teaserText: "Rates, timelines, and what happens to the work when we leave.",
     topics: faqTopics,
@@ -783,9 +799,9 @@ async function main() {
 
   const contact = await page("SectionPage", "Contact", {
     heading: "Get in touch",
-    intro: "Tell us roughly what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
+    intro: "Tell us what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
     teaserTitle: "Contact",
-    teaserText: "A form, an email address, and a human at the other end.",
+    teaserText: "How to reach us, and what to expect when you do.",
   });
 
   const about = await page("SectionPage", "About", {
@@ -793,10 +809,10 @@ async function main() {
     intro: "A small studio in Oslo that builds content-led sites and then teaches the team to run them.",
     body: rt(
       "We started in 2019, after too many projects where the site launched beautifully and then froze, because changing a sentence needed a developer.",
-      "An honest note: Nordlys Studio does not exist. Every page on this site is demo content for the Paperboy CMS, created through its Management API by scripts/demo-content.mjs when this stack first started — which makes that script a decent worked example if you want to automate the CMS yourself.",
+      "There are two of us, and we keep it that way on purpose: every project gets the people whose names are on this page. When a job needs more hands, we bring in specialists we have worked with before — and tell you exactly who they are.",
     ),
     teaserTitle: "About us",
-    teaserText: "Who we are, and an honest note about what this site actually is.",
+    teaserText: "Who we are, how we work, and why the studio stays small.",
     mainArea: [
       b("PersonBlock", {
         image: photo.ingrid,
@@ -816,7 +832,7 @@ async function main() {
       }),
       b("ImageBlock", {
         image: photo.studioDesk,
-        caption: "The Oslo office, on one of the quiet afternoons.",
+        caption: "Our studio in Oslo.",
       }),
       b("LinkListBlock", {
         heading: "Elsewhere on this site",
@@ -834,7 +850,7 @@ async function main() {
   // --- a real form, stored as content ---------------------------------------
   const form = await page("Form", "Contact form", {
     title: "Tell us about the project",
-    intro: rt("A few questions. Nothing here goes on a mailing list."),
+    intro: rt("A few short questions. Nothing you write here joins a mailing list."),
     submitLabel: "Send enquiry",
     fields: [
       // errorMessage is the EDITOR's wording, returned per field and rendered
@@ -871,9 +887,9 @@ async function main() {
   // documentId, which an inline copy would not have.
   await setData(contact, "SectionPage", "Contact", {
     heading: "Get in touch",
-    intro: "Tell us roughly what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
+    intro: "Tell us what you are trying to do, or write to hei@nordlys.example. We reply within two working days.",
     teaserTitle: "Contact",
-    teaserText: "A form, an email address, and a human at the other end.",
+    teaserText: "How to reach us, and what to expect when you do.",
     mainArea: [ref("Form", form)],
   });
 
@@ -882,16 +898,16 @@ async function main() {
     heading: "Nordlys Studio",
     mainArea: [
       b("HeroBlock", {
-        heading: "Sites your editors can actually run",
+        heading: "Publish without booking a developer",
         subtitle:
-          "We build content-led websites for teams who want to publish without booking a developer. Design systems, front-end work, and the training that makes it stick.",
+          "We design and build content-led websites, and stay until your editors can run them without us.",
         image: photo.hero,
         primaryLink: pageLink(contact, "Book a discovery week"),
         secondaryLink: pageLink(services, "See what we do"),
       }),
       b("TeaserListBlock", {
-        heading: "Where projects start",
-        intro: "Three services. Most people arrive needing one of them.",
+        heading: "What we do",
+        intro: "Design systems, front-end development, and content operations.",
         teasers: serviceIds.map((id) => ref("SectionPage", id)),
         moreLink: pageLink(services, "All services"),
       }),
@@ -900,7 +916,7 @@ async function main() {
         items: [
           b("AccordionItemBlock", {
             heading: "Discovery week",
-            body: rt("Five days, on site where we can be. Two of us, your editors, and whoever owns the budget in the room for the first afternoon."),
+            body: rt("Five days with your editors and stakeholders. We map the content you actually have, sketch the model, and agree what a first release contains."),
             expanded: true,
           }),
           b("AccordionItemBlock", {
@@ -908,14 +924,14 @@ async function main() {
             body: rt("Monthly blocks, your repository, your CI. You can see what we are doing every day, and stop at the end of any block."),
           }),
           b("AccordionItemBlock", {
-            heading: "Handover, properly",
+            heading: "Handover",
             body: rt("We pair with your developers throughout, write down the parts that are hard to guess, and leave when your team is publishing unaided."),
           }),
         ],
       }),
       b("QuoteBlock", {
-        quote: "A correction used to take three weeks and a developer. Now the comms team publishes it themselves before lunch.",
-        source: "Head of communications, a public-sector client",
+        quote: "A correction used to take three weeks and a developer. Now the comms team publishes it before lunch.",
+        source: "Head of communications, public-sector agency",
       }),
       ref("BannerBlock", cta),
     ],
@@ -942,7 +958,7 @@ async function main() {
       b("LinkItemBlock", { link: { href: "https://github.com/hybriden/paperboy", text: "Built with Paperboy" } }),
     ],
     footerText: rt(
-      "Nordlys Studio is fictional. Every page here is demo content for the Paperboy CMS — edit any of it in the admin and reload.",
+      "Nordlys Studio is fictional — every page is demo content for the Paperboy CMS, created through its Management API by scripts/demo-content.mjs. Edit anything in the admin and reload.",
       // The Unsplash licence does not require attribution; it asks for it, and a
       // demo that models the habit costs one line.
       "Photographs from Unsplash.",

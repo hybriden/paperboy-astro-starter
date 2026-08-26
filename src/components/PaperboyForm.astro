@@ -73,7 +73,7 @@ const returnTo = Astro.url.pathname;
     hidden={!sent && !failed}
   >
     {sent
-      ? "Thank you \u2014 your message is with us."
+      ? "Thanks \u2014 your message has been sent."
       : failed
         ? "Please check the highlighted fields and try again."
         : ""}
@@ -187,7 +187,7 @@ const returnTo = Astro.url.pathname;
 
           if (res.ok) {
             form.reset();
-            say(typeof body.message === "string" ? body.message : "Thank you \u2014 your message is with us.", true);
+            say(typeof body.message === "string" ? body.message : "Thanks \u2014 your message has been sent.", true);
             return;
           }
 
@@ -207,7 +207,7 @@ const returnTo = Astro.url.pathname;
           say(generic, false);
           if (first) first.focus();
         } catch {
-          say("Could not send that just now. Please try again.", false);
+          say("Your message could not be sent. Please try again.", false);
         } finally {
           if (button) {
             button.disabled = false;
