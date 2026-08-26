@@ -746,10 +746,12 @@ async function main() {
       mainImage: photo[ARTICLES[2].photo],
       teaserImage: photo[ARTICLES[2].photo],
       mainArea: [
-        // A pull quote of the article's own thesis carries no attribution — a
-        // quip in the source slot reads as a joke where a citation belongs.
+        // The built-in QuoteBlock REQUIRES a source — the CMS itself refuses an
+        // unattributed quote at publish. So the attribution is the article's own
+        // author, plainly; what must not return is a quip in the source slot.
         b("QuoteBlock", {
           quote: "The audit did not fail on our code. It failed on words we had approved ourselves.",
+          source: "Jonas Berg",
         }),
       ],
     });
