@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Astro starter for Paperboy CMS \u2014 pages, blocks, on-page editing, forms and generated public files, wired to the Delivery API.",
+  "description": "Astro starter for Paperboy CMS — pages, blocks, on-page editing, forms and generated public files, wired to the Delivery API.",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -17,7 +17,7 @@
   "dependencies": {
     "@astrojs/node": "^11.1.4",
     "@paperboycms/client": "^0.4.0",
-    "@paperboycms/preview": "^0.3.2",
+    "@paperboycms/preview": "^0.3.4",
     "astro": "^7.2.5"
   },
   "devDependencies": {
