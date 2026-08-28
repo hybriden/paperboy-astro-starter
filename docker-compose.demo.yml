@@ -94,7 +94,10 @@ services:
       # origin and does not proxy /uploads — relative URLs would 404 here.
       MEDIA_PUBLIC_BASE: http://localhost:8091
       UPLOADS_DIR: /app/uploads
-      TRUST_PROXY: "1"
+      # The api REFUSES the hop-count form ("1") at boot since fastify 5.12.1
+      # disabled it (GHSA-3m5p-2c4r-xxw2 — it left X-Forwarded-* spoofable).
+      # uniquelocal trusts docker's NAT hop, matching the CMS repo's default.
+      TRUST_PROXY: "uniquelocal"
     depends_on:
       db:
         condition: service_healthy
