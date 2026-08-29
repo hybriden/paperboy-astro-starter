@@ -1,0 +1,30 @@
+---
+/**
+ * Standalone block preview — part of the documented Paperboy preview contract.
+ *
+ * The CMS admin frames `{previewUrl}/{locale}/preview/block/{documentId}` to
+ * show a shared block WITHOUT a host page (a form still being built, a block
+ * not placed anywhere yet). The locale prefix is here because the admin frames
+ * every preview as `/{locale}{path}` — same reason the page catch-all splits
+ * one off.
+ *
+ * Preview-authenticated ONLY (`?pbt` token / `?pb` secret), enforced inside
+ * the loader BEFORE any fetch: without the hard 404 this would open draft
+ * reads by documentId enumeration on the public site.
+ */
+import BlockPreview from "../../../../templates/BlockPreview.astro";
+import { looksLikeLocale } from "../../../../lib/routing";
+import { loadStandaloneBlock } from "../../../../lib/standalone-block";
+
+export const prerender = false;
+
+const env = (Astro.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+
+// `[locale]` matches ANY first segment; a non-locale there is not this route.
+if (!looksLikeLocale(Astro.params.locale)) return Astro.rewrite("/404");
+
+const content = await loadStandaloneBlock(Astro.url, env, Astro.params.documentId ?? "", Astro.params.locale);
+if (!content) return Astro.rewrite("/404");
+---
+
+<BlockPreview content={content} />

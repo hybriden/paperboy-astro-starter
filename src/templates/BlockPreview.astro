@@ -1,0 +1,59 @@
+---
+/**
+ * The standalone block preview shell: one block, no page around it.
+ *
+ * Deliberately NOT the Base layout — a block previewed on its own has no SEO
+ * block, no breadcrumb trail, and site chrome (header, nav, footer) would only
+ * say "this is a page", which is the one thing it is not. It gets the site's
+ * stylesheet and fonts so the block looks exactly as it will on a real page.
+ *
+ * The bridge still runs: the admin streams field-highlight rects from it, and
+ * live patches after an edit update the frame without a reload.
+ */
+import type { Delivered } from "@paperboycms/client";
+import Blocks from "../components/Blocks.astro";
+import PreviewBridge from "../components/PreviewBridge.astro";
+import { standaloneAreaBlock } from "../lib/standalone-block";
+import "../styles/app.css";
+
+interface Props {
+  content: Delivered;
+}
+const { content } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Block preview — {content.name}</title>
+    {/* Editor chrome. The preview gate already 404s public callers; noindex is
+        belt and braces, same as the CMS's always-noindex preview responses. */}
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+    />
+  </head>
+  <body>
+    <p class="pb-standalone-note">Standalone preview — this block renders here without a page</p>
+    <main id="main" data-document-id={content.documentId}>
+      <Blocks blocks={[standaloneAreaBlock(content)]} preview />
+    </main>
+    <PreviewBridge />
+  </body>
+</html>
+
+<style>
+  .pb-standalone-note {
+    margin: 0;
+    padding: 0.4rem 1rem;
+    font-size: var(--pb-text-small);
+    color: var(--pb-muted);
+    border-bottom: 1px dashed var(--pb-muted);
+    text-align: center;
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+/**
+ * Standalone block preview, unprefixed form — for server-side callers that
+ * hold the raw secret (`?pb=`). The admin frames the locale-prefixed twin
+ * (`/{locale}/preview/block/{id}`); both share one loader, and the preview
+ * gate inside it 404s anyone without a credential BEFORE anything is fetched.
+ */
+import BlockPreview from "../../../templates/BlockPreview.astro";
+import { loadStandaloneBlock } from "../../../lib/standalone-block";
+
+export const prerender = false;
+
+const env = (Astro.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+const content = await loadStandaloneBlock(Astro.url, env, Astro.params.documentId ?? "", undefined);
+if (!content) return Astro.rewrite("/404");
+---
+
+<BlockPreview content={content} />
