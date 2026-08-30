@@ -118,6 +118,12 @@ it comes from the CMS's own `canonicalBaseUrl`.) Without it the scheme is read
 from `x-forwarded-proto` and the host from the request, which is right in the
 usual single-proxy case — the variable is for when you would rather not guess.
 
+Either way, **your proxy must forward `X-Forwarded-Proto`**: form posts are
+checked against the origin the request actually arrived on (`src/middleware.ts`),
+so without that header every submission from your own pages looks cross-site and
+is refused with a 403. `PUBLIC_SITE_URL` does not stand in for it — where a
+request came *from* is never something the deployer gets to configure.
+
 One optional fifth value: **`PAPERBOY_LOCALE`**. Content in Paperboy is localized
 and a page's URL belongs to a locale — the front page that is `/home` in English
 is `/hjem` in Norwegian — so one route serves one language. Set this to pick which

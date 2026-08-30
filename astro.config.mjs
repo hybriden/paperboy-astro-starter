@@ -9,4 +9,10 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   devToolbar: { enabled: false },
+  // Astro's built-in cross-site form guard compares the browser's Origin header
+  // against the URL the Node adapter built from the socket — which is http://
+  // behind a TLS-terminating proxy, so it 403s the site's own form posts.
+  // src/middleware.ts runs the identical rule against the forwarded scheme; do
+  // not drop it if you re-enable this.
+  security: { checkOrigin: false },
 });

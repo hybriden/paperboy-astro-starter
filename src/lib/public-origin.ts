@@ -1,4 +1,5 @@
 import { readEnv, type Env } from "./cms";
+import { requestOrigin } from "./request-origin";
 
 /**
  * The origin this site is PUBLISHED on — for URLs the site says about itself.
@@ -18,16 +19,12 @@ import { readEnv, type Env } from "./cms";
  *   2. Astro's own `site`, if the deployer set it at build time.
  *   3. The request, with the scheme corrected from `x-forwarded-proto`.
  *
- * On (3): only the SCHEME comes from a forwarded header. The host stays the one
- * Astro resolved, exactly as before — taking the host from `x-forwarded-host`
- * would let anyone who can reach this app directly put their own domain in your
- * sitemap. Correcting only the scheme cannot be abused that way: the worst a
- * spoofed value achieves is claiming a scheme you are already reachable on.
+ * On (3): see `requestOrigin`, which owns the forwarded-scheme rule.
  *
- * NOT for access decisions. The same-origin Referer check in api/submit.ts
- * deliberately keeps using `context.url.origin`, because there the question is
- * "where did this request really come from", and a forwarded header is the
- * caller's opinion rather than the answer.
+ * A different question from `requestOrigin`, and not interchangeable with it:
+ * this one answers "what do we call ourselves", so a deployer's configured value
+ * wins. Where the request came FROM is never configurable — that is
+ * `requestOrigin`, and it is what the same-origin checks use.
  */
 export function publicOrigin(
   context: { site?: URL | undefined; url: URL; request: Request },
@@ -38,10 +35,7 @@ export function publicOrigin(
 
   if (context.site) return trim(context.site.origin);
 
-  // First value only: a chain through two proxies reads "https, http".
-  const forwarded = context.request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
-  const scheme = forwarded === "https" || forwarded === "http" ? forwarded : context.url.protocol.replace(":", "");
-  return trim(`${scheme}://${context.url.host}`);
+  return trim(requestOrigin(context));
 }
 
 function trim(origin: string): string {

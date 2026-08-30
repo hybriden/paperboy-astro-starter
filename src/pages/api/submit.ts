@@ -1,6 +1,7 @@
 import type { APIContext } from "astro";
 import { config } from "../../lib/cms";
 import { backTo, elapsedMs } from "../../lib/form-post";
+import { requestOrigin } from "../../lib/request-origin";
 
 /**
  * Form submissions.
@@ -44,10 +45,15 @@ export async function POST(context: APIContext): Promise<Response> {
   const { apiUrl, publicKey } = config(env);
   if (!apiUrl || !publicKey) return json({ error: "CMS is not configured." }, 500);
 
+  // The origin the visitor actually called, not the one the server saw: behind a
+  // TLS-terminating proxy those differ, and a referer that fails to match sends
+  // a no-JS submission back to "/" instead of the page holding the form.
+  const origin = requestOrigin(context);
+
   const form = await context.request.formData();
   const formId = String(form.get("pb_form_id") ?? "");
   if (!formId) {
-    if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), context.url.origin));
+    if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), origin));
     return json({ error: "Missing form id." }, 400);
   }
 
@@ -81,7 +87,7 @@ export async function POST(context: APIContext): Promise<Response> {
     // input (WCAG 3.3.1) rather than showing only the first.
     const body = (await res.json()) as { fields?: Record<string, string> };
     const first = Object.values(body.fields ?? {})[0];
-    if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), context.url.origin));
+    if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), origin));
     return json({ error: first ?? "Please check the form and try again.", fields: body.fields ?? {} }, 400);
   }
 
@@ -93,10 +99,10 @@ export async function POST(context: APIContext): Promise<Response> {
     // you add a notification below, skip it on this branch or the spam lands in
     // the inbox those checks exist to protect.
     const discarded = body.submissionId === "sub_discarded";
-    if (!wantsJson(context.request)) return redirect(backTo(form, true, context.request.headers.get("referer"), context.url.origin));
+    if (!wantsJson(context.request)) return redirect(backTo(form, true, context.request.headers.get("referer"), origin));
     return json({ ok: true, discarded }, 200);
   }
 
-  if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), context.url.origin));
+  if (!wantsJson(context.request)) return redirect(backTo(form, false, context.request.headers.get("referer"), origin));
   return json({ error: "Could not send the message. Please try again." }, 502);
 }
