@@ -128,7 +128,14 @@ let formSeen = false;
       {Component ? (
         <Component data={data} preview={preview} />
       ) : (
-        <GenericBlock data={data} types={typesOf(b)} preview={preview} depth={depth} />
+        <>
+          {preview && (
+            /* Editor-facing, preview only: the block DID render (schema
+               fallback below), but no bespoke component exists for it yet. */
+            <p class="pb-generic-note">“{type}” has no designed view on this site — rendered from its schema. Add it to the registry in Blocks.astro for a real design.</p>
+          )}
+          <GenericBlock data={data} types={typesOf(b)} preview={preview} depth={depth} />
+        </>
       )}
     </section>
   );
@@ -141,6 +148,14 @@ let formSeen = false;
 )}
 
 <style>
+  .pb-generic-note {
+    margin: 0 0 0.5rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    opacity: 0.75;
+  }
   .pb-empty-area {
     padding: 2rem;
     border: 2px dashed var(--pb-muted);
