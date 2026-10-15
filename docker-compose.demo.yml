@@ -2,12 +2,17 @@
 #
 #   docker compose -f docker-compose.demo.yml up -d --build
 #
+# Ran it before? Add `--remove-orphans --force-recreate` once: Paperboy's admin
+# no longer has its own container (the api serves it), and the old one still
+# holds :8090. --force-recreate also repairs an api left broken by a first
+# attempt that failed with "port is already allocated".
+#
 #   http://localhost:4321   this site
 #   http://localhost:8090   the CMS admin — admin@paperboy.test / Admin!Passw0rd
 #   http://localhost:8091   the API (OpenAPI UI at /docs)
 #
 # No .env, no keys to copy, no second repo to clone: the CMS comes from published
-# images (ghcr.io/hybriden/paperboy-*) and seeds itself with demo content. Edit a
+# image (ghcr.io/hybriden/paperboy-app) and seeds itself with demo content. Edit a
 # page in the admin and watch it change here — the site's preview URL is already
 # pointed at :4321, so side-by-side editing works out of the box.
 #
@@ -76,7 +81,8 @@ services:
     restart: "no"
 
   api:
-    # Must be named `api`: the admin image's nginx proxies /api/ to http://api:8091.
+    # The api also serves the admin SPA, so one container answers both ports:
+    # the admin at :8090 and the API at :8091, as before.
     image: *cms-image
     command: ["pnpm", "--filter", "@paperboy/api", "start"]
     restart: unless-stopped
@@ -104,6 +110,7 @@ services:
       init:
         condition: service_completed_successfully
     ports:
+      - "8090:8091"
       - "8091:8091"
     volumes:
       - demo-uploads:/app/uploads
@@ -131,15 +138,6 @@ services:
       api:
         condition: service_healthy
     restart: "no"
-
-  admin:
-    image: ghcr.io/hybriden/paperboy-admin:latest
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    ports:
-      - "8090:8090"
 
   site:
     # This app, built from the Dockerfile in this repo.

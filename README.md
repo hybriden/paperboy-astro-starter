@@ -26,6 +26,11 @@ cd my-site
 docker compose -f docker-compose.demo.yml up -d --build
 ```
 
+Ran the demo before? Paperboy's admin no longer has its own container (the API
+serves it), so add `--remove-orphans --force-recreate` once: that clears the old
+admin off port 8090, and repairs the stack if a first try failed with "port is
+already allocated". Your content is kept.
+
 | | |
 | --- | --- |
 | http://localhost:4321 | the site |
