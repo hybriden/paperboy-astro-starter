@@ -9,7 +9,7 @@
 import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
 import SectionHeading from "../SectionHeading.astro";
 import AccordionItemBlock from "./AccordionItemBlock.astro";
-import { pbField } from "../../lib/editing";
+import { pbBlock, pbField } from "../../lib/editing";
 import { area, rich, str, type Data } from "../../lib/values";
 
 interface Props {
@@ -29,7 +29,7 @@ const items: AreaBlock[] = area(data, "items");
 
   <div class="pb-accordion" {...pbAreaAttrs("items", preview)}>
     {items.map((item, i) => (
-      <AccordionItemBlock data={blockData(item)} preview={preview} number={i + 1} />
+      <AccordionItemBlock data={blockData(item)} preview={preview} number={i + 1} attrs={pbBlock(i, item.blockType, preview)} />
     ))}
   </div>
 </div>

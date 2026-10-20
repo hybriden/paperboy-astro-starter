@@ -9,7 +9,7 @@
  * Built on <details>/<summary>, so open/close, keyboard operation and screen
  * reader announcements come from the browser. No JavaScript.
  */
-import { pbField } from "../../lib/editing";
+import { pbField, type PbAttrs } from "../../lib/editing";
 import { bool, rich, str, type Data } from "../../lib/values";
 
 interface Props {
@@ -17,8 +17,10 @@ interface Props {
   preview?: boolean;
   /** 1-based position, shown as 01 / 02 / 03 like the design's process list. */
   number?: number;
+  /** pbBlock() markers from the parent area, so a click edits THIS row, not the Accordion. */
+  attrs?: PbAttrs;
 }
-const { data, preview = false, number } = Astro.props;
+const { data, preview = false, number, attrs = {} } = Astro.props;
 
 const heading = str(data, "heading");
 const body = rich(data, "body");
@@ -27,7 +29,7 @@ const open = preview || bool(data, "expanded");
 ---
 
 {(heading || body) && (
-  <details class="pb-accordion__item" open={open}>
+  <details class="pb-accordion__item" open={open} {...attrs}>
     <summary class="pb-accordion__summary">
       {number !== undefined && (
         <span class="pb-accordion__number" aria-hidden="true">{String(number).padStart(2, "0")}</span>

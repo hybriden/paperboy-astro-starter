@@ -8,7 +8,7 @@
  * Paperboy computes FAQPage JSON-LD from the page's own schema roles, so there
  * is no structured data to hand-write here.
  */
-import { pbField } from "../../lib/editing";
+import { pbField, type PbAttrs } from "../../lib/editing";
 import { rich, str, type Data } from "../../lib/values";
 
 interface Props {
@@ -16,15 +16,17 @@ interface Props {
   preview?: boolean;
   /** Open on load. The editor is always shown every answer. */
   open?: boolean;
+  /** pbBlock() markers from the parent area, so a click edits THIS question, not the topic. */
+  attrs?: PbAttrs;
 }
-const { data, preview = false, open = false } = Astro.props;
+const { data, preview = false, open = false, attrs = {} } = Astro.props;
 
 const question = str(data, "question");
 const answer = rich(data, "answer");
 ---
 
 {(question || answer) && (
-  <details class="pb-accordion__item" open={preview || open}>
+  <details class="pb-accordion__item" open={preview || open} {...attrs}>
     <summary class="pb-accordion__summary question__summary">
       <span {...pbField("question", preview)}>{question}</span>
       <span class="pb-accordion__toggle" aria-hidden="true"></span>
