@@ -6,7 +6,7 @@
  */
 import { blockData, pbAreaAttrs, type AreaBlock } from "@paperboycms/client";
 import LinkItemBlock from "./LinkItemBlock.astro";
-import { pbField } from "../../lib/editing";
+import { pbBlock, pbField } from "../../lib/editing";
 import { area, str, type Data } from "../../lib/values";
 
 interface Props {
@@ -26,8 +26,8 @@ const links: AreaBlock[] = area(data, "links");
     </h3>
   )}
   <ul class="link-list__items" {...pbAreaAttrs("links", preview)}>
-    {links.map((l) => (
-      <li><LinkItemBlock data={blockData(l)} preview={preview} /></li>
+    {links.map((l, i) => (
+      <li {...pbBlock(i, l.blockType, preview)}><LinkItemBlock data={blockData(l)} preview={preview} /></li>
     ))}
   </ul>
 </div>
