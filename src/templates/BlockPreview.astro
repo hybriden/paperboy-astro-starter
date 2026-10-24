@@ -41,7 +41,7 @@ const { content } = Astro.props;
   <body>
     <p class="pb-standalone-note">Standalone preview — this block renders here without a page</p>
     <main id="main" data-document-id={content.documentId}>
-      <Blocks blocks={[standaloneAreaBlock(content)]} preview />
+      <Blocks blocks={[standaloneAreaBlock(content)]} preview standalone />
     </main>
     <PreviewBridge />
   </body>

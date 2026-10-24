@@ -42,8 +42,11 @@ interface Props {
   preview?: boolean;
   /** Nesting depth, so a block cycle cannot render forever. */
   depth?: number;
+  /** The block IS the previewed document (standalone preview): no block marker,
+   *  so its fields report as the document's own and On-page edits them. */
+  standalone?: boolean;
 }
-const { blocks, preview = false, depth = 0 } = Astro.props;
+const { blocks, preview = false, depth = 0, standalone = false } = Astro.props;
 
 /** Content type name -> component. The one place to register a design. */
 const REGISTRY: Record<string, any> = {
@@ -92,7 +95,7 @@ let formSeen = false;
   const type = typeOf(b);
   const data = blockData(b);
   const Component = REGISTRY[type];
-  const attrs = pbBlock(i, b.blockType, preview);
+  const attrs = standalone ? {} : pbBlock(i, b.blockType, preview);
 
   // A FORM is a shared block whose delivered document carries a `form` spec:
   // fields, labels, validation rules and the editor's own error copy. It needs
