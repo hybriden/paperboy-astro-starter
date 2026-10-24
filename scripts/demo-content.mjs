@@ -561,12 +561,49 @@ const ARTICLES = [
   },
 ];
 
+/**
+ * A running A/B experiment on the start page's hero, so the demo shows one: B
+ * is the same area with a different headline, counted against the contact form.
+ * Skipped when the page already has one (any status), so a re-run adds nothing.
+ */
+async function ensureHeroExperiment(home) {
+  const existing = await call("GET", `/manage/experiments?documentId=${encodeURIComponent(home)}`);
+  if (!existing.ok) return log(`experiment: ${existing.status} ${existing.text.slice(0, 200)}`);
+  if (existing.json.length) return;
+
+  const content = await call("GET", `/manage/content/${home}?locale=${LOCALE}`);
+  const area = content.json?.data?.mainArea ?? [];
+  const hero = area.findIndex((x) => x.blockType === "HeroBlock" && x.inline);
+  if (hero < 0) return log("experiment: the start page has no inline hero to test");
+  const versionB = area.map((x, i) =>
+    i === hero ? { ...x, inline: { ...x.inline, heading: "Your editors publish. Your developers build." } } : x,
+  );
+
+  const created = await call("POST", "/manage/experiments", {
+    documentId: home,
+    locale: LOCALE,
+    area: "mainArea",
+    name: "Hero headline",
+    hypothesis: "Naming both audiences in the headline gets more discovery-week enquiries.",
+    goal: "form",
+    // A plan, so the admin shows how many visitors a trustworthy result needs.
+    baselineRate: 0.03,
+    mde: 0.2,
+    arms: [{ key: "a", label: "Current headline" }, { key: "b", label: "Editors and developers", blocks: versionB }],
+  });
+  if (!created.ok) return log(`experiment: ${created.status} ${created.text.slice(0, 200)}`);
+  const started = await call("POST", `/manage/experiments/${created.json.id}/start`);
+  if (!started.ok) log(`experiment start: ${started.status} ${started.text.slice(0, 200)}`);
+}
+
 async function main() {
   if (!(await waitForApi())) throw new Error(`API never became ready at ${API}`);
   await login();
 
   if (await alreadySeeded()) {
     log("demo content is already here — leaving it alone");
+    const site = await call("GET", "/manage/site");
+    if (site.json?.startPageId) await ensureHeroExperiment(site.json.startPageId);
     return;
   }
 
@@ -969,6 +1006,7 @@ async function main() {
 
   const start = await call("POST", "/manage/site/start-page", { documentId: home });
   if (!start.ok) log(`start page: ${start.status} ${start.text.slice(0, 200)}`);
+  await ensureHeroExperiment(home);
 
   // Generated robots.txt / sitemap.xml / llms.txt need an origin to build
   // absolute URLs from. Without one the sitemap is served EMPTY and llms.txt

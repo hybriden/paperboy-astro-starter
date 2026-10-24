@@ -290,6 +290,11 @@ also carries a server-rendered timestamp, because the CMS's minimum-fill-time sp
 check would otherwise see "0ms" from a JS-less visitor and discard a real enquiry
 while telling them it was sent.
 
+The form is also a [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tool
+(`formToolAttrs`): an in-browser AI agent can fill it from a declared schema
+worded by the Form's title and intro, and the visitor still clicks Send. The
+honeypot is `readonly`, which is what keeps it out of that schema.
+
 **SEO comes computed.** Every page carries a `seo` block: meta, canonical, robots,
 OpenGraph, Twitter and per-`@type` JSON-LD plus a breadcrumb trail, built from the
 roles your content types declare and computed *after* field visibility, so a
@@ -305,12 +310,37 @@ and this app serves pages without a locale segment, so proxying produced a
 sitemap where every URL was an alias of the canonical one. `noindex` pages are
 excluded, and the start page is emitted as `/`.
 
+## A/B experiments
+
+Editors test a page's content area against up to three alternatives in the
+admin. `[...path].astro` picks the visitor's version on the server with
+`applyExperiments` (never in the browser: that flickers), reports the exposure
+fire-and-forget with the public key, and the page's form carries the version so
+a submission counts as that experiment's conversion. Preview shows the version
+the admin picks (`?pbab`, honoured only behind the preview check) and is never
+counted. The logic is in `src/lib/ab.ts`.
+
+| Env | Default | |
+| --- | --- | --- |
+| `PAPERBOY_AB_MODE` | `cookieless` | `cookieless`: a fresh random key per page view, nothing stored on the device, so a visitor may see a different version on the next view. `consent`: a first-party random `pb_vid` cookie (13 months, HttpOnly, SameSite=Lax) keeps their version. |
+| `PAPERBOY_AB_CONSENT_COOKIE` | `pb_consent` | In `consent` mode, `pb_vid` is set only while this cookie is `1` or `true`, and deleted when it is not. Have your consent banner set it. |
+
+A cookie that remembers the version needs the visitor's consent (in Norway,
+ekomloven §3-15); it is not "strictly necessary", so don't label it that way.
+Robots are treated like anyone else: the user agent is never read, because
+showing crawlers another version is cloaking.
+
+**Caching.** A page under test answers `Cache-Control: private`, so a shared
+cache or CDN never pins one version for everyone. If you cache pages at the
+edge, keep that header, or put the version into the cache key yourself.
+
 ## Layout
 
 ```
 src/
   lib/
     cms.ts             the only place this app talks to Paperboy
+    ab.ts              A/B experiments: visitor key, version pick
     values.ts          delivered field shapes -> typed values
     editing.ts         data-pb-* markers, preview only
     teaser.ts          a block or page -> teaser card props

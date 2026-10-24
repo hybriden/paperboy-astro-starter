@@ -1,4 +1,5 @@
 import type { APIContext } from "astro";
+import { parseExposures } from "../../lib/ab";
 import { config } from "../../lib/cms";
 import { backTo, elapsedMs } from "../../lib/form-post";
 import { requestOrigin } from "../../lib/request-origin";
@@ -29,6 +30,7 @@ const CONTROL_FIELDS = new Set([
   "pb_elapsed_ms",
   "pb_rendered_at",
   "pb_return_to",
+  "pb_experiments",
 ]);
 
 /** A fetch() caller asks for JSON; a plain form post does not. */
@@ -79,6 +81,9 @@ export async function POST(context: APIContext): Promise<Response> {
       values,
       elapsedMs: elapsedMs(form),
       honeypot: honeypotName ? String(form.get(honeypotName) ?? "") : "",
+      // The A/B versions the page showed: the "form"-goal conversion. Same wire
+      // shape as the client's submitForm({ experiments }).
+      experiments: parseExposures(form.get("pb_experiments")).map((e) => ({ id: e.experimentId, arm: e.arm })),
     }),
   });
 

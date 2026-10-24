@@ -90,6 +90,25 @@ describe("block rendering details", () => {
     expect(html).toContain("pb_hp_email");
   });
 
+  it("makes the form a WebMCP tool and keeps the honeypot out of it", async () => {
+    const html = await render([FORM_BLOCK]);
+    expect(html).toMatch(/<form[^>]* toolname="contact_us"/);
+    expect(html).toMatch(/<form[^>]* tooldescription="/);
+    expect(html).not.toContain("toolautosubmit");
+    // Chrome leaves only readonly/disabled controls out of the tool schema
+    // (HTML attribute names are case-insensitive; Astro writes `readOnly`).
+    expect(html).toMatch(/<input[^>]*name="pb_hp_email"[^>]* readonly[\s>]/i);
+  });
+
+  it("posts the page's A/B exposures with the form, and nothing when there are none", async () => {
+    const c = await AstroContainer.create();
+    const exposures = [{ experimentId: 42, arm: "b" }];
+    const html = await c.renderToString(Blocks, { props: { blocks: [FORM_BLOCK], preview: false }, locals: { pbExposures: exposures } });
+    expect(html).toContain('name="pb_experiments"');
+    expect(html).toContain("&quot;experimentId&quot;:42");
+    expect(await render([FORM_BLOCK])).not.toContain("pb_experiments");
+  });
+
   it("renders an unknown type from its schema, keeping richtext as richtext", async () => {
     const html = await render([UNKNOWN_BLOCK]);
     expect(html).toContain("A type added in the admin today");
