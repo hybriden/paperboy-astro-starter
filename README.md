@@ -19,7 +19,7 @@ it works against an instance you run or one somebody else runs.
 No CMS yet? This brings up Paperboy, its admin, and this site, with demo content
 already in it — a start page of blocks, articles, an FAQ, a profile, and a menu to
 browse it with. Two containers, no database server: the CMS runs Postgres inside
-itself ([PGlite](https://github.com/hybriden/paperboy#without-a-postgres-server))
+itself ([PGlite](https://github.com/hybriden/paperboy#production))
 with its data in a volume, and needs about 0.6 GB of memory:
 
 ```bash
