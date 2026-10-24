@@ -111,6 +111,13 @@ describe("editing markers are preview-only", () => {
     expect(html).toContain('data-pb-field="heading"');
   });
 
+  it("standalone preview: the block carries no marker, its fields still do", async () => {
+    const c = await AstroContainer.create();
+    const html = await c.renderToString(Blocks, { props: { blocks: [HERO], preview: true, standalone: true } });
+    expect(html).not.toContain("data-pb-block-index");
+    expect(html).toContain('data-pb-field="heading"');
+  });
+
   it("ships no marker at all on a public page", async () => {
     const html = await render(ALL_BLOCKS.map((b) => b.block), false);
     expect(html).not.toMatch(/data-pb-/);

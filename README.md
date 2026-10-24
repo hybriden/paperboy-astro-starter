@@ -18,7 +18,9 @@ it works against an instance you run or one somebody else runs.
 
 No CMS yet? This brings up Paperboy, its admin, and this site, with demo content
 already in it — a start page of blocks, articles, an FAQ, a profile, and a menu to
-browse it with:
+browse it with. Two containers, no database server: the CMS runs Postgres inside
+itself ([PGlite](https://github.com/hybriden/paperboy#production))
+with its data in a volume, and needs about 0.6 GB of memory:
 
 ```bash
 git clone https://github.com/hybriden/paperboy-astro-starter my-site
@@ -26,10 +28,18 @@ cd my-site
 docker compose -f docker-compose.demo.yml up -d --build
 ```
 
-Ran the demo before? Paperboy's admin no longer has its own container (the API
-serves it), so add `--remove-orphans --force-recreate` once: that clears the old
-admin off port 8090, and repairs the stack if a first try failed with "port is
-already allocated". Your content is kept.
+Ran the demo before? Fetch the current CMS image and clear out the old
+containers once:
+
+```bash
+docker compose -f docker-compose.demo.yml pull
+docker compose -f docker-compose.demo.yml up -d --build --remove-orphans --force-recreate
+```
+
+The demo no longer has a Postgres or an init container, and the admin no longer
+has its own (the API serves it). This version starts on a fresh database; an
+earlier demo's content stays in its old `demo-pgdata` volume until you remove it
+(`docker volume ls`).
 
 | | |
 | --- | --- |

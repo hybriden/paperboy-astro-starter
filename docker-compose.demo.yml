@@ -2,10 +2,14 @@
 #
 #   docker compose -f docker-compose.demo.yml up -d --build
 #
-# Ran it before? Add `--remove-orphans --force-recreate` once: Paperboy's admin
-# no longer has its own container (the api serves it), and the old one still
-# holds :8090. --force-recreate also repairs an api left broken by a first
-# attempt that failed with "port is already allocated".
+# Ran it before? Run `docker compose -f docker-compose.demo.yml pull` (an image
+# from before PGlite fails with "connect ECONNREFUSED 127.0.0.1:5432"), then add
+# `--remove-orphans --force-recreate` once: the demo no longer
+# has a Postgres or an init container (the CMS keeps its database in the
+# `demo-data` volume), nor an admin container (the api serves it, and an old one
+# still holds :8090). An earlier demo's content stays in its old `demo-pgdata`
+# volume; this stack starts fresh. --force-recreate also repairs an api left
+# broken by a first attempt that failed with "port is already allocated".
 #
 #   http://localhost:4321   this site
 #   http://localhost:8090   the CMS admin — admin@paperboy.test / Admin!Passw0rd
@@ -43,43 +47,6 @@ x-delivery-keys: &delivery-keys
   PAPERBOY_PREVIEW_KEY: prv_seed_preview_key_value
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: paperboy
-      POSTGRES_PASSWORD: paperboy
-      POSTGRES_DB: paperboy
-    # No published port on purpose: this must not collide with a Postgres you
-    # already run (the CMS repo's own stack publishes 5433).
-    volumes:
-      - demo-pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paperboy -d paperboy"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # One-shot: migrate + seed demo content, then exit. Skips a database that
-  # already holds content, so restarting the stack never wipes your edits.
-  init:
-    image: *cms-image
-    command: ["pnpm", "--filter", "@paperboy/db", "seed"]
-    environment:
-      <<: [*demo-secrets, *delivery-keys]
-      DATABASE_URL: postgresql://paperboy:paperboy@db:5432/paperboy
-      SEED_ADMIN_EMAIL: admin@paperboy.test
-      SEED_ADMIN_PASSWORD: Admin!Passw0rd
-      # The published demo login. Refused by default under NODE_ENV=production —
-      # this flag exists for exactly this case, a throwaway local demo.
-      ALLOW_DEMO_CREDENTIALS: "true"
-      # What the admin's preview pane frames: this site.
-      SITE_PREVIEW_URL: http://localhost:4321
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
-
   api:
     # The api also serves the admin SPA, so one container answers both ports:
     # the admin at :8090 and the API at :8091, as before.
@@ -87,9 +54,20 @@ services:
     command: ["pnpm", "--filter", "@paperboy/api", "start"]
     restart: unless-stopped
     environment:
-      <<: *demo-secrets
+      <<: [*demo-secrets, *delivery-keys]
       NODE_ENV: production
-      DATABASE_URL: postgresql://paperboy:paperboy@db:5432/paperboy
+      # PGlite: Postgres compiled to WASM, running inside this container with its
+      # data in the volume. No database server, no init container: on first boot
+      # the api migrates and seeds an EMPTY database, and never touches one that
+      # holds content, so restarting the stack keeps your edits.
+      DATABASE_URL: pglite:///data/db
+      SEED_ADMIN_EMAIL: admin@paperboy.test
+      SEED_ADMIN_PASSWORD: Admin!Passw0rd
+      # The published demo login. Refused by default under NODE_ENV=production —
+      # this flag exists for exactly this case, a throwaway local demo.
+      ALLOW_DEMO_CREDENTIALS: "true"
+      # What the admin's preview pane frames: this site.
+      SITE_PREVIEW_URL: http://localhost:4321
       API_PORT: "8091"
       CORS_ORIGIN: http://localhost:8090
       # http://localhost cannot carry a Secure cookie, so the admin login would
@@ -99,26 +77,23 @@ services:
       # Absolute media URLs pointing at the API, because this site serves its own
       # origin and does not proxy /uploads — relative URLs would 404 here.
       MEDIA_PUBLIC_BASE: http://localhost:8091
-      UPLOADS_DIR: /app/uploads
+      UPLOADS_DIR: /data/uploads
       # The api REFUSES the hop-count form ("1") at boot since fastify 5.12.1
       # disabled it (GHSA-3m5p-2c4r-xxw2 — it left X-Forwarded-* spoofable).
       # uniquelocal trusts docker's NAT hop, matching the CMS repo's default.
       TRUST_PROXY: "uniquelocal"
-    depends_on:
-      db:
-        condition: service_healthy
-      init:
-        condition: service_completed_successfully
     ports:
       - "8090:8091"
       - "8091:8091"
     volumes:
-      - demo-uploads:/app/uploads
+      - demo-data:/data
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8091/health/ready"]
       interval: 5s
       timeout: 5s
       retries: 12
+      # The first boot creates and seeds the database.
+      start_period: 120s
 
   # Fills the fresh CMS with a demo SITE — start page of blocks, articles, an
   # FAQ, a profile, and a MENU to browse it with. Talks to the Management API the
@@ -162,5 +137,4 @@ services:
       - "4321:4321"
 
 volumes:
-  demo-pgdata:
-  demo-uploads:
+  demo-data:
