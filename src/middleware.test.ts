@@ -1,5 +1,5 @@
 import type { APIContext, MiddlewareNext } from "astro";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { onRequest } from "./middleware";
 
 const next: MiddlewareNext = async () => new Response("rendered", { status: 200 });
@@ -22,7 +22,19 @@ const ctx = (
   const all: Record<string, string> = { ...headers };
   if (origin) all.origin = origin;
   if (contentType) all["content-type"] = contentType;
-  return { url: new URL(url), request: new Request(url, { method, headers: all }), isPrerendered } as APIContext;
+  return { url: new URL(url), request: new Request(url, { method, headers: all }), isPrerendered, cookies: fakeCookies({}), locals: {} } as unknown as APIContext;
+};
+
+/** Just enough of AstroCookies to see what the middleware set or deleted. */
+const fakeCookies = (initial: Record<string, string>) => {
+  const jar = { ...initial };
+  const calls: { set?: { value: string; options: Record<string, unknown> }; deleted?: boolean } = {};
+  return {
+    calls,
+    get: (n: string) => (n in jar ? { value: jar[n]! } : undefined),
+    set: (n: string, value: string, options: Record<string, unknown>) => { jar[n] = value; calls.set = { value, options }; },
+    delete: (n: string) => { delete jar[n]; calls.deleted = true; },
+  };
 };
 
 describe("the same-origin form guard", () => {
@@ -75,5 +87,46 @@ describe("the same-origin form guard", () => {
   it("skips prerendered routes", async () => {
     const res = await onRequest(ctx({ origin: "https://evil.example", isPrerendered: true }), next);
     expect((res as Response).status).toBe(200);
+  });
+});
+
+describe("the A/B visitor cookie (pb_vid)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const page = (cookies: Record<string, string>, url = "http://demo.example/", headers: Record<string, string> = {}) => {
+    const c = ctx({ method: "GET", contentType: null, url, headers });
+    const jar = fakeCookies(cookies);
+    (c as unknown as { cookies: typeof jar }).cookies = jar;
+    return { c, jar };
+  };
+
+  it("cookieless (the default) never sets it, and deletes a leftover one", async () => {
+    const fresh = page({ pb_consent: "1" });
+    await onRequest(fresh.c, next);
+    expect(fresh.jar.calls).toEqual({});
+    const leftover = page({ pb_vid: "old" });
+    await onRequest(leftover.c, next);
+    expect(leftover.jar.calls.deleted).toBe(true);
+  });
+
+  it("consent mode sets a 13-month, HttpOnly, Lax, first-party id only once the visitor consents", async () => {
+    vi.stubEnv("PAPERBOY_AB_MODE", "consent");
+    const none = page({});
+    await onRequest(none.c, next);
+    expect(none.jar.calls).toEqual({});
+
+    const ok = page({ pb_consent: "1" }, "http://demo.example/", { "x-forwarded-proto": "https" });
+    await onRequest(ok.c, next);
+    expect(ok.jar.calls.set?.value).toMatch(/^[0-9a-f-]{36}$/);
+    expect(ok.jar.calls.set?.options).toMatchObject({ maxAge: 60 * 60 * 24 * 395, sameSite: "lax", httpOnly: true, secure: true, path: "/" });
+    // The page rendered in this same request already reads it.
+    expect(ok.c.cookies.get("pb_vid")?.value).toBe(ok.jar.calls.set?.value);
+  });
+
+  it("consent mode deletes it once consent is withdrawn", async () => {
+    vi.stubEnv("PAPERBOY_AB_MODE", "consent");
+    const gone = page({ pb_vid: "v1", pb_consent: "0" });
+    await onRequest(gone.c, next);
+    expect(gone.jar.calls.deleted).toBe(true);
   });
 });

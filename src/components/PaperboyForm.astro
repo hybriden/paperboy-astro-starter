@@ -8,7 +8,16 @@
  * `fieldAttrs` builds accessible attributes from the spec (label association,
  * `aria-describedby` for help and error text, programmatic `required`), and
  * `honeypotAttrs` builds the hidden anti-spam field — hidden from sight AND from
- * assistive tech, and never focusable.
+ * assistive tech, never focusable, and readonly (spread it as given: readonly is
+ * what keeps it out of a WebMCP agent's tool; aria-hidden does not).
+ *
+ * `formToolAttrs` makes the form a WebMCP tool (`toolname`, `tooldescription`)
+ * that an in-browser AI agent can fill, worded from the Form's title and intro.
+ * No `toolautosubmit`: the agent pre-fills, the visitor still clicks Send.
+ *
+ * `pb_experiments` carries the A/B versions this page showed (set by the page
+ * route in `Astro.locals.pbExposures`), so a submission counts as that
+ * experiment's "form" conversion. Rendered into the page, never stored.
  *
  * The submit goes to this app's own /api/submit, which forwards to the CMS. That
  * server hop exists so the CMS validates against the CURRENT published form
@@ -25,7 +34,7 @@
  *    silently discarded as spam while being told it was sent.
  *  - `pb_return_to` says where to come back to, rather than trusting Referer.
  */
-import { fieldAttrs, honeypotAttrs, isRichTextDoc, renderRichText, type FormSpec } from "@paperboycms/client";
+import { fieldAttrs, formToolAttrs, honeypotAttrs, isRichTextDoc, renderRichText, type ExperimentExposure, type FormSpec } from "@paperboycms/client";
 
 interface Props {
   spec: FormSpec;
@@ -43,6 +52,7 @@ const failed = Astro.url.searchParams.get("formError") === token;
 const renderedAt = Date.now();
 const introHtml = isRichTextDoc(spec.intro) ? renderRichText(spec.intro) : "";
 const returnTo = Astro.url.pathname;
+const exposures = (Astro.locals as { pbExposures?: ExperimentExposure[] }).pbExposures ?? [];
 ---
 
 {/* novalidate on purpose. The CMS is the authority on these rules, and the
@@ -51,12 +61,13 @@ const returnTo = Astro.url.pathname;
     editor's own wording, which is the thing this form exists to demonstrate.
     Every field still carries required/type for assistive tech and for the
     server; only the browser's own UI is suppressed. */}
-<form class="pb-form" method="POST" action="/api/submit" data-paperboy-form novalidate>
+<form class="pb-form" method="POST" action="/api/submit" data-paperboy-form novalidate {...formToolAttrs(spec)}>
   <input type="hidden" name="pb_form_id" value={formId} />
   <input type="hidden" name="pb_honeypot_field" value={spec.honeypotField} />
   <input type="hidden" name="pb_elapsed_ms" value="0" data-paperboy-elapsed />
   <input type="hidden" name="pb_rendered_at" value={String(renderedAt)} />
   <input type="hidden" name="pb_return_to" value={returnTo} />
+  {exposures.length > 0 && <input type="hidden" name="pb_experiments" value={JSON.stringify(exposures)} />}
 
   {spec.title && <h2>{spec.title}</h2>}
   {/* The editor's own introduction. Delivered as richtext on the spec and, until

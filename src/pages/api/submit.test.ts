@@ -139,4 +139,14 @@ describe("POST /api/submit — what it sends to the CMS", () => {
     const sent = postedToCms(spy);
     expect(sent.elapsedMs).toBeGreaterThanOrEqual(9000);
   });
+
+  it("carries the page's A/B exposures as the CMS's experiments, never as an answer", async () => {
+    const spy = cmsReplies(200, { submissionId: "sub_1" });
+    vi.stubGlobal("fetch", spy);
+    await POST(context(fields({ pb_experiments: JSON.stringify([{ experimentId: 42, arm: "b" }, { experimentId: 7, arm: "z" }]) })));
+
+    const sent = postedToCms(spy);
+    expect(sent.experiments).toEqual([{ id: 42, arm: "b" }]);
+    expect(sent.values).not.toHaveProperty("pb_experiments");
+  });
 });

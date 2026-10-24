@@ -24,6 +24,7 @@ import PersonPage from "../templates/PersonPage.astro";
 import SectionPage from "../templates/SectionPage.astro";
 import StartPage from "../templates/StartPage.astro";
 import type { Delivered } from "@paperboycms/client";
+import { experimentView, visitorKey } from "../lib/ab";
 import { splitLocalePath } from "../lib/routing";
 import { str } from "../lib/values";
 
@@ -87,6 +88,30 @@ let path = page ? split.rest : split.full;
 if (!page) page = await resolve(split.full, cfg.locale || undefined);
 
 if (!page) return Astro.rewrite("/404");
+
+/**
+ * A/B experiments: pick this visitor's version on the server, before rendering
+ * (see src/lib/ab.ts). Preview shows the admin's forced `?pbab` version and is
+ * never counted. Exposures are reported with the PUBLIC key, fire-and-forget:
+ * a lost count must never delay or break the page.
+ */
+if (page.experiments?.length) {
+  const ab = experimentView(page, {
+    preview,
+    pbab: Astro.url.searchParams.get("pbab"),
+    visitorKey: () => visitorKey(Astro.cookies, env),
+  });
+  page = ab.item;
+  // One URL, several versions: a shared cache must never pin one of them.
+  Astro.response.headers.set("Cache-Control", "private");
+  // Read by PaperboyForm, so a submission carries its "form"-goal conversion.
+  (Astro.locals as { pbExposures?: typeof ab.exposures }).pbExposures = ab.exposures;
+  if (ab.exposures.length) {
+    const report = cms(env).reportTraffic({ exposures: ab.exposures }).catch(() => undefined);
+    // Serverless runtimes (Cloudflare) end the request with the response; keep the report alive.
+    (Astro.locals as { runtime?: { ctx?: { waitUntil?: (p: Promise<unknown>) => void } } }).runtime?.ctx?.waitUntil?.(report);
+  }
+}
 
 const data = page.data ?? {};
 const Template = TEMPLATES[page.type] ?? GenericPage;

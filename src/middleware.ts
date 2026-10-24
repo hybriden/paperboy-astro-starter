@@ -1,4 +1,5 @@
 import type { APIContext, MiddlewareHandler, MiddlewareNext } from "astro";
+import { VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE, visitorCookieAction } from "./lib/ab";
 import { requestOrigin } from "./lib/request-origin";
 
 /**
@@ -33,5 +34,27 @@ export const onRequest: MiddlewareHandler = (context: APIContext, next: Middlewa
   if (isForbiddenCrossOriginRequest(context)) {
     return new Response(`Cross-site ${context.request.method} form submissions are forbidden`, { status: 403 });
   }
+  if (!context.isPrerendered) syncVisitorCookie(context);
   return next();
 };
+
+/**
+ * A/B consent mode: mint `pb_vid` (set before the page renders, so this very
+ * render already reads it) while the visitor consents; drop it once consent is
+ * gone. See src/lib/ab.ts.
+ */
+function syncVisitorCookie(context: APIContext): void {
+  const env = (context.locals as { runtime?: { env?: Record<string, string | undefined> } }).runtime?.env;
+  const action = visitorCookieAction(context.cookies, env);
+  if (action === "set") {
+    context.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
+      maxAge: VISITOR_COOKIE_MAX_AGE,
+      sameSite: "lax",
+      httpOnly: true,
+      path: "/",
+      secure: requestOrigin(context).startsWith("https:"),
+    });
+  } else if (action === "delete") {
+    context.cookies.delete(VISITOR_COOKIE, { path: "/" });
+  }
+}
