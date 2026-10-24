@@ -586,6 +586,9 @@ async function ensureHeroExperiment(home) {
     name: "Hero headline",
     hypothesis: "Naming both audiences in the headline gets more discovery-week enquiries.",
     goal: "form",
+    // A plan, so the admin shows how many visitors a trustworthy result needs.
+    baselineRate: 0.03,
+    mde: 0.2,
     arms: [{ key: "a", label: "Current headline" }, { key: "b", label: "Editors and developers", blocks: versionB }],
   });
   if (!created.ok) return log(`experiment: ${created.status} ${created.text.slice(0, 200)}`);
