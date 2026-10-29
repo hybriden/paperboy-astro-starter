@@ -303,6 +303,14 @@ private field cannot leak into a meta tag.
 **`robots.txt` and `security.txt` are generated** by the CMS from your content and
 proxied from this origin — never stale after a publish, editable without a deploy.
 
+**IndexNow** tells Bing, Yandex, Seznam, Naver and Yep within seconds when a page
+is published, moved, unpublished or trashed. Switch it on in the admin under
+Settings → Site → Public files → IndexNow; this app already serves the key file at
+`/indexnow.txt`. Set **Language in URLs** to *No prefix for the default language*
+on the same screen, since that is how this app serves pages and the CMS builds the
+URLs it announces from it. Needs the canonical base URL, and a CMS with IndexNow
+(any image from after hybriden/paperboy#181).
+
 `sitemap.xml` and `llms.txt` are BUILT here instead, from the CMS's page
 inventory (`/delivery/pages`). The CMS generates those two as well, but it
 composes URLs as `{base}/{locale}{urlPath}` — the reference frontend's scheme —
@@ -356,7 +364,7 @@ src/
     [...path].astro    every CMS page, by its own URL
     kitchen-sink/      every block and template, from fixtures (dev only)
     api/submit.ts      form submissions -> CMS -> your notification
-    robots.txt.ts  sitemap.xml.ts  llms.txt.ts  .well-known/security.txt.ts
+    robots.txt.ts  sitemap.xml.ts  llms.txt.ts  indexnow.txt.ts  .well-known/security.txt.ts
 scripts/demo-content.mjs  the demo site, built through the Management API
   styles/
     tokens.css         the design system, in variables
