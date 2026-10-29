@@ -1013,6 +1013,9 @@ async function main() {
   // 404s, which reads as a broken feature rather than an unconfigured one.
   const files = await call("POST", "/manage/site/public-files", {
     canonicalBaseUrl: SITE_URL,
+    // This app serves pages without a locale segment; the CMS's redirect
+    // targets and IndexNow URLs must say the same.
+    localePrefix: "except-default",
     llmsSummary: "Demo content for the Paperboy CMS, in the shape of a small design studio's website.",
     securityContact: "mailto:security@example.com",
   });
