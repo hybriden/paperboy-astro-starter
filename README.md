@@ -124,6 +124,10 @@ your machine, set `PAPERBOY_API_URL=http://host.docker.internal:8091`.
 | `PREVIEW_SECRET` | the API's own `PREVIEW_SECRET` | must be byte-identical |
 
 Delivery keys are per **site**, so a multisite instance has a pair per site.
+On a multisite instance also set **`PAPERBOY_SITE_ID`** (Settings → Site): one
+`PREVIEW_SECRET` signs every site's preview tokens, so without it a token minted
+while working in another site opens this site's drafts. With it, a token must
+carry the admin's `?pbs=` proof that it was minted here.
 
 **Deploying behind a proxy?** Set **`PUBLIC_SITE_URL`** to your public origin.
 A TLS-terminating proxy forwards plain HTTP, so the server sees `http://` and the

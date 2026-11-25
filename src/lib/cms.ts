@@ -1,5 +1,5 @@
 import { createClient, type PaperboyClient } from "@paperboycms/client";
-import { constantTimeEqual, verifyPreviewToken } from "@paperboycms/client/preview-token";
+import { constantTimeEqual, verifyPreviewToken, verifySitePreviewToken } from "@paperboycms/client/preview-token";
 
 /**
  * The one place this app talks to Paperboy.
@@ -33,6 +33,8 @@ export interface CmsConfig {
   publicKey: string;
   previewKey: string;
   previewSecret: string;
+  /** This frontend's site id; set, a preview token must carry a proof it was minted in this site. */
+  siteId: string;
   /**
    * Which language to serve. Empty means "whatever the API's default is".
    *
@@ -51,6 +53,7 @@ export function config(env: Env): CmsConfig {
     publicKey: readEnv(env, "PAPERBOY_PUBLIC_KEY") ?? "",
     previewKey: readEnv(env, "PAPERBOY_PREVIEW_KEY") ?? "",
     previewSecret: readEnv(env, "PREVIEW_SECRET") ?? "",
+    siteId: (readEnv(env, "PAPERBOY_SITE_ID") ?? "").trim(),
     locale: readEnv(env, "PAPERBOY_LOCALE") ?? "",
   };
 }
@@ -79,6 +82,11 @@ export function cms(env: Env, preview = false): PaperboyClient {
  *                 the preview iframe sends; the browser never holds the secret.
  *   ?pb=<secret>  the raw secret, for server-side or CLI callers that hold it.
  *
+ * With PAPERBOY_SITE_ID set, a token also needs `?pbs=`, the admin's proof that
+ * it was minted in this site. One PREVIEW_SECRET signs every site's tokens, so on
+ * a multi-site instance the token alone would open this site's drafts to someone
+ * who may only preview another site.
+ *
  * The verification comes from `@paperboycms/client/preview-token` — a SEPARATE
  * subpath from the client itself, because its first argument is your
  * PREVIEW_SECRET and nothing that reaches a browser bundle may hold that. Do not
@@ -88,12 +96,15 @@ export function cms(env: Env, preview = false): PaperboyClient {
  * run on Node, Cloudflare Workers, Deno and Bun.
  */
 export async function isPreview(url: URL, env?: Env): Promise<boolean> {
-  const { previewSecret } = config(env);
+  const { previewSecret, siteId } = config(env);
   if (!previewSecret) return false;
 
   const pb = url.searchParams.get("pb");
   if (pb !== null && constantTimeEqual(pb, previewSecret)) return true;
-  return verifyPreviewToken(previewSecret, url.searchParams.get("pbt"));
+  const pbt = url.searchParams.get("pbt");
+  return siteId
+    ? verifySitePreviewToken(previewSecret, pbt, url.searchParams.get("pbs"), siteId)
+    : verifyPreviewToken(previewSecret, pbt);
 }
 
 /**
@@ -107,8 +118,11 @@ export function withPreview(href: string, url: URL): string {
   if (!pbt && !pb) return href;
   if (!href.startsWith("/")) return href;
   const next = new URL(href, url.origin);
-  if (pbt) next.searchParams.set("pbt", pbt);
-  else if (pb) next.searchParams.set("pb", pb);
+  const pbs = url.searchParams.get("pbs");
+  if (pbt) {
+    next.searchParams.set("pbt", pbt);
+    if (pbs) next.searchParams.set("pbs", pbs);
+  } else if (pb) next.searchParams.set("pb", pb);
   return `${next.pathname}${next.search}`;
 }
 
